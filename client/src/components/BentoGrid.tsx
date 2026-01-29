@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
 import { Skeleton } from "./ui/skeleton";
+import { WidgetEditorModal } from "./WidgetEditorModal";
 // @ts-ignore
 import * as ReactGridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -225,9 +226,20 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
     }, [widgets, layouts, isLoading, isEditable, currentUserUsername, configDocId]);
 
 
-    const addWidget = useCallback(() => {
+    // State for Add Widget Modal
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    const handleCreateWidget = (data: Partial<WidgetData>) => {
         const id = generateId();
-        const newWidget: WidgetData = { id, size: "1x1", url: "" };
+        const newWidget: WidgetData = {
+            id,
+            size: "1x1",
+            url: data.url || "",
+            customTitle: data.customTitle,
+            customImage: data.customImage,
+            ctaText: data.ctaText,
+            imageFit: data.imageFit
+        };
 
         setWidgets(prev => [...prev, newWidget]);
 
@@ -252,6 +264,12 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 lg: [...currentLayout, newItem]
             };
         });
+
+        setIsAddModalOpen(false);
+    };
+
+    const addWidget = useCallback(() => {
+        setIsAddModalOpen(true);
     }, []);
 
     const removeWidget = useCallback((id: string) => {
@@ -395,6 +413,14 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                     </svg>
                 </button>
             )}
+
+            {/* Add Widget Modal */}
+            <WidgetEditorModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSave={handleCreateWidget}
+                title="Add New Widget"
+            />
         </div>
     );
 };
