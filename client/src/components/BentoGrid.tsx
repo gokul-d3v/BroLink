@@ -425,7 +425,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                        transition={{ duration: 0.3 }}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
