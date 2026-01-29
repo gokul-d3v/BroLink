@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Link as LinkIcon, Upload, ArrowUpRight } from "lucide-react";
+import { Link as LinkIcon, Upload } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { WidgetData } from "./LinkWidget";
 
