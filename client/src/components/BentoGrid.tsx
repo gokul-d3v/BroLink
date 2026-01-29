@@ -272,7 +272,15 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         setIsAddModalOpen(true);
     }, []);
 
-    const removeWidget = useCallback((id: string) => {
+    const removeWidget = useCallback(async (id: string, imageUrl?: string) => {
+        if (imageUrl) {
+            try {
+                await api.post('/upload/delete', { url: imageUrl });
+            } catch (error) {
+                console.error("Failed to delete image from Cloudinary:", error);
+                // We typically proceed with removing the widget even if image delete fails
+            }
+        }
         setWidgets(prev => prev.filter(w => w.id !== id));
     }, []);
 

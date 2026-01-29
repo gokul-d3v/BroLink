@@ -44,4 +44,33 @@ router.post('/', upload.single('file'), (req, res) => {
     });
 });
 
+// Delete file route
+router.post('/delete', async (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        return res.status(400).json({ message: 'No URL provided' });
+    }
+
+    try {
+        // Extract public_id from Cloudinary URL
+        // URL format: .../upload/v1234/folder/filename.ext or .../upload/folder/filename.ext
+        // We need 'folder/filename' (without extension)
+        const parts = url.split('/');
+        const filename = parts.pop();
+        const folder = parts.pop();
+
+        if (!filename || !folder) {
+            return res.status(400).json({ message: 'Invalid URL format' });
+        }
+
+        const publicId = `${folder}/${filename.split('.')[0]}`;
+
+        await cloudinary.uploader.destroy(publicId);
+        res.json({ message: 'Image deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        res.status(500).json({ message: 'Failed to delete image' });
+    }
+});
+
 export default router;

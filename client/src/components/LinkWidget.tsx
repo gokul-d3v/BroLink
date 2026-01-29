@@ -29,7 +29,7 @@ export interface WidgetData {
 interface LinkWidgetProps {
     data: WidgetData;
     onUpdate: (id: string, updates: Partial<WidgetData>) => void;
-    onRemove: (id: string) => void;
+    onRemove: (id: string, imageUrl?: string) => void;
     isEditable?: boolean;
 }
 
@@ -159,7 +159,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-400 transition-all"
-                                    onClick={() => onRemove(data.id)}
+                                    onClick={() => onRemove(data.id, data.customImage)}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -193,10 +193,9 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                         Edit Link
                     </Button>
                 )}
-                {/* Controls Overlay - Fixed Visibility for Mobile */}
                 {isEditable && (
                     <div className="absolute top-4 right-4 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/40 hover:bg-white/80 shadow-sm backdrop-blur-sm" onClick={() => onRemove(data.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/40 hover:bg-white/80 shadow-sm backdrop-blur-sm" onClick={() => onRemove(data.id, data.customImage)}>
                             <Trash2 className="h-4 w-4 text-gray-500" />
                         </Button>
                     </div>
@@ -359,7 +358,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                                 <DropdownMenuItem onClick={() => setIsEditOpen(true)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-50 focus:text-gray-900 text-gray-600 font-medium transition-colors">
                                     <Pencil className="mr-2.5 h-4 w-4 text-gray-400" /> Edit Content
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => onRemove(data.id)} className="rounded-xl cursor-pointer py-2.5 px-3 text-red-500 focus:text-red-600 focus:bg-red-50 font-medium transition-colors">
+                                <DropdownMenuItem onClick={() => onRemove(data.id, data.customImage)} className="rounded-xl cursor-pointer py-2.5 px-3 text-red-500 focus:text-red-600 focus:bg-red-50 font-medium transition-colors">
                                     <Trash2 className="mr-2.5 h-4 w-4" /> Remove
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
