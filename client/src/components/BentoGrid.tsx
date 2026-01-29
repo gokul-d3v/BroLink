@@ -417,6 +417,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             <AnimatePresence>
                 {isEditable && !isAddModalOpen && (
                     <motion.button
+                        key="add-widget-button"
                         layoutId="add-widget-modal"
                         onClick={addWidget}
                         className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-white/20 hover:border-white/40"
