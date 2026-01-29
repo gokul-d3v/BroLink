@@ -186,13 +186,12 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
         <>
             <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
                 <DialogContent
-                    className="sm:max-w-[420px] p-0 gap-0 rounded-xl overflow-hidden border-none shadow-2xl bg-transparent !translate-x-0 !translate-y-0 !top-[unset] !left-[unset] !right-8 !bottom-8 fixed"
-                    style={{ transform: 'none' }} // Ensure no inline styles conflict
+                    className="sm:max-w-[420px] p-0 gap-0 rounded-xl overflow-hidden border-none shadow-2xl bg-transparent fixed inset-0 z-50 flex items-center justify-center pointer-events-none !translate-x-0 !translate-y-0 !top-0 !left-0 w-full h-full max-w-none"
+                    style={{ transform: 'none' }}
                 >
                     <motion.div
                         layoutId="add-widget-modal"
-                        className="w-full h-full bg-[#fafafa] overflow-hidden rounded-xl"
-                    // Key for editability: layout dependency usually handles text selection gracefully if we don't scale the inputs themselves but the container.
+                        className="w-full max-w-[420px] bg-[#fafafa] overflow-hidden rounded-xl pointer-events-auto shadow-2xl relative"
                     >
                         <DialogHeader className="p-6 pb-2 bg-white">
                             <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">{title}</DialogTitle>
