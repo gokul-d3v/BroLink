@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
+import { Skeleton } from "./ui/skeleton";
 // @ts-ignore
 import * as ReactGridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -311,10 +312,16 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         return newLayouts;
     }, [layouts, isEditable]);
 
+    // Skeleton Loading
+
     if (isLoading && !widgets.length) {
         return (
-            <div className="min-h-screen w-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+            <div className="max-w-7xl mx-auto px-6 pt-24 pb-10 md:py-24 relative z-10">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 auto-rows-[280px]">
+                    {[...Array(8)].map((_, i) => (
+                        <Skeleton key={i} className={`h-[280px] rounded-3xl ${i === 0 ? 'col-span-2 row-span-2' : 'col-span-1 row-span-1'}`} />
+                    ))}
+                </div>
             </div>
         );
     }
