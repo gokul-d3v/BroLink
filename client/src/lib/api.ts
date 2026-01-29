@@ -11,8 +11,11 @@ const getBaseUrl = () => {
     return 'https://brolink-2.onrender.com/api';
 };
 
+const baseUrl = getBaseUrl();
+console.log('🔌 API Base URL:', baseUrl, '| Hostname:', window.location.hostname);
+
 const api = axios.create({
-    baseURL: getBaseUrl(),
+    baseURL: baseUrl,
 });
 
 // Add a request interceptor to attach the token
