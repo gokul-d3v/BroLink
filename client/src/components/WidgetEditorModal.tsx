@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import api from "../lib/api";
@@ -179,123 +180,127 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
         onClose();
     };
 
+
+
     return (
         <>
             <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
                 <DialogContent className="sm:max-w-[420px] p-0 gap-0 rounded-xl overflow-hidden border-none shadow-2xl bg-[#fafafa]">
-                    <DialogHeader className="p-6 pb-2 bg-white">
-                        <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">{title}</DialogTitle>
-                    </DialogHeader>
+                    <motion.div layoutId="add-widget-modal" className="w-full h-full bg-[#fafafa]">
+                        <DialogHeader className="p-6 pb-2 bg-white">
+                            <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">{title}</DialogTitle>
+                        </DialogHeader>
 
-                    <div className="p-6 space-y-5 bg-white max-h-[70vh] overflow-y-auto">
-                        <div className="space-y-2">
-                            <Label htmlFor="title" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Title</Label>
-                            <Input
-                                id="title"
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                placeholder="Display title"
-                                className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-lg px-4"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="url" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Link URL</Label>
-                            <div className="relative">
-                                <LinkIcon className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
+                        <div className="p-6 space-y-5 bg-white max-h-[70vh] overflow-y-auto">
+                            <div className="space-y-2">
+                                <Label htmlFor="title" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Title</Label>
                                 <Input
-                                    id="url"
-                                    value={editUrl}
-                                    onChange={(e) => {
-                                        setEditUrl(e.target.value);
-                                        if (urlError) setUrlError("");
-                                    }}
-                                    placeholder="https://..."
-                                    className={cn(
-                                        "h-12 pl-10 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600",
-                                        urlError && "border-red-500 focus:border-red-500 focus:ring-red-500/10 bg-red-50/50"
-                                    )}
+                                    id="title"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    placeholder="Display title"
+                                    className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-lg px-4"
                                 />
-                                {urlError && <p className="text-red-500 text-xs font-medium mt-1.5 ml-1 flex items-center gap-1"><span className="inline-block w-1 h-1 rounded-full bg-red-500"></span>{urlError}</p>}
                             </div>
-                        </div>
 
-                        {/* Thumbnail Input */}
-                        <div className="space-y-2">
-                            <Label htmlFor="thumbnail" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Thumbnail Image</Label>
-                            <div className="flex gap-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="url" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Link URL</Label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        id="url"
+                                        value={editUrl}
+                                        onChange={(e) => {
+                                            setEditUrl(e.target.value);
+                                            if (urlError) setUrlError("");
+                                        }}
+                                        placeholder="https://..."
+                                        className={cn(
+                                            "h-12 pl-10 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600",
+                                            urlError && "border-red-500 focus:border-red-500 focus:ring-red-500/10 bg-red-50/50"
+                                        )}
+                                    />
+                                    {urlError && <p className="text-red-500 text-xs font-medium mt-1.5 ml-1 flex items-center gap-1"><span className="inline-block w-1 h-1 rounded-full bg-red-500"></span>{urlError}</p>}
+                                </div>
+                            </div>
+
+                            {/* Thumbnail Input */}
+                            <div className="space-y-2">
+                                <Label htmlFor="thumbnail" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Thumbnail Image</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="thumbnail"
+                                        value={editThumbnail}
+                                        onChange={(e) => setEditThumbnail(e.target.value)}
+                                        placeholder="https://example.com/image.jpg"
+                                        className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
+                                    />
+                                    {isFetchingMetadata && (
+                                        <div className="absolute right-14 top-3">
+                                            <span className="loading loading-spinner loading-xs opacity-50"></span>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageSelect}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-12 w-12 shrink-0 rounded-xl border-gray-200 bg-gray-50 hover:bg-white transition-all shadow-sm"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title="Upload Image"
+                                    >
+                                        <Upload className="h-5 w-5 text-gray-500" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Image Fit Toggle */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Image Fit</Label>
+                                <div className="flex gap-2 bg-gray-50 rounded-xl p-1 border border-gray-100">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => setEditImageFit("cover")}
+                                        className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "cover" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
+                                    >
+                                        Fill (Cover)
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => setEditImageFit("contain")}
+                                        className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "contain" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
+                                    >
+                                        Fit (Contain)
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* CTA Input */}
+                            <div className="space-y-2">
+                                <Label htmlFor="cta" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Button Label (CTA)</Label>
                                 <Input
-                                    id="thumbnail"
-                                    value={editThumbnail}
-                                    onChange={(e) => setEditThumbnail(e.target.value)}
-                                    placeholder="https://example.com/image.jpg"
+                                    id="cta"
+                                    value={editCtaText}
+                                    onChange={(e) => setEditCtaText(e.target.value)}
+                                    placeholder="e.g. Read More, Buy Now"
                                     className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
                                 />
-                                {isFetchingMetadata && (
-                                    <div className="absolute right-14 top-3">
-                                        <span className="loading loading-spinner loading-xs opacity-50"></span>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleImageSelect}
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-12 w-12 shrink-0 rounded-xl border-gray-200 bg-gray-50 hover:bg-white transition-all shadow-sm"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    title="Upload Image"
-                                >
-                                    <Upload className="h-5 w-5 text-gray-500" />
-                                </Button>
                             </div>
                         </div>
 
-                        {/* Image Fit Toggle */}
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Image Fit</Label>
-                            <div className="flex gap-2 bg-gray-50 rounded-xl p-1 border border-gray-100">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => setEditImageFit("cover")}
-                                    className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "cover" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
-                                >
-                                    Fill (Cover)
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => setEditImageFit("contain")}
-                                    className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "contain" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
-                                >
-                                    Fit (Contain)
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* CTA Input */}
-                        <div className="space-y-2">
-                            <Label htmlFor="cta" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Button Label (CTA)</Label>
-                            <Input
-                                id="cta"
-                                value={editCtaText}
-                                onChange={(e) => setEditCtaText(e.target.value)}
-                                placeholder="e.g. Read More, Buy Now"
-                                className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter className="p-4 bg-gray-50/50 border-t border-gray-100 flex gap-3">
-                        <Button variant="ghost" onClick={onClose} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-white hover:shadow-sm font-semibold">Cancel</Button>
-                        <Button onClick={handleSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold shadow-lg shadow-black/10">Save Changes</Button>
-                    </DialogFooter>
+                        <DialogFooter className="p-4 bg-gray-50/50 border-t border-gray-100 flex gap-3">
+                            <Button variant="ghost" onClick={onClose} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-white hover:shadow-sm font-semibold">Cancel</Button>
+                            <Button onClick={handleSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold shadow-lg shadow-black/10">Save Changes</Button>
+                        </DialogFooter>
+                    </motion.div>
                 </DialogContent>
             </Dialog>
 

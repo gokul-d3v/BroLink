@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
 import { Skeleton } from "./ui/skeleton";
@@ -203,8 +205,9 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         }
 
         const syncData = async () => {
-            // Avoid syncing if widgets empty (initial state issue protection)
-            if (widgets.length === 0 && Object.keys(layouts).length === 0) return;
+            // Allow syncing empty state (e.g. if user deleted all widgets)
+            // But still respect isLoading to avoid overwriting with initial state before load
+            if (isLoading) return;
 
             try {
                 const payload = {
@@ -352,7 +355,9 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         );
     }
 
-    if (userNotFound) {
+    // Only show "User not found" if we are NOT in editable mode.
+    // If we are editable (Admin), we should show the empty grid so the user can add widgets.
+    if (userNotFound && !isEditable) {
         return (
             <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#fbfbfd] p-4 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
@@ -409,18 +414,25 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 </div>
             </div>
             {/* Floating Add Button */}
-            {isEditable && (
-                <button
-                    onClick={addWidget}
-                    className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-white/20 hover:border-white/40"
-                    title="Add New Card"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-            )}
+            <AnimatePresence>
+                {isEditable && !isAddModalOpen && (
+                    <motion.button
+                        layoutId="add-widget-modal"
+                        onClick={addWidget}
+                        className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-white/20 hover:border-white/40"
+                        title="Add New Card"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </motion.button>
+                )}
+            </AnimatePresence>
 
             {/* Add Widget Modal */}
             <WidgetEditorModal
