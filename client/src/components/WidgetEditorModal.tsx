@@ -25,6 +25,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
     const [editThumbnail, setEditThumbnail] = useState("");
     const [editCtaText, setEditCtaText] = useState("");
     const [editImageFit, setEditImageFit] = useState<"cover" | "contain">("cover");
+    const [urlError, setUrlError] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Crop states
@@ -42,6 +43,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
             setEditThumbnail(initialData.customImage || "");
             setEditCtaText(initialData.ctaText || "");
             setEditImageFit(initialData.imageFit || "cover");
+            setUrlError("");
         }
     }, [isOpen, initialData]);
 
@@ -119,6 +121,13 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
     };
 
     const handleSave = () => {
+        // Validation
+        if (editUrl && !/^https?:\/\//i.test(editUrl)) {
+            setUrlError("URL must start with http:// or https://");
+            return;
+        }
+        setUrlError("");
+
         onSave({
             customTitle: editTitle,
             url: editUrl,
@@ -156,10 +165,17 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
                                 <Input
                                     id="url"
                                     value={editUrl}
-                                    onChange={(e) => setEditUrl(e.target.value)}
+                                    onChange={(e) => {
+                                        setEditUrl(e.target.value);
+                                        if (urlError) setUrlError("");
+                                    }}
                                     placeholder="https://..."
-                                    className="h-12 pl-10 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600"
+                                    className={cn(
+                                        "h-12 pl-10 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600",
+                                        urlError && "border-red-500 focus:border-red-500 focus:ring-red-500/10 bg-red-50/50"
+                                    )}
                                 />
+                                {urlError && <p className="text-red-500 text-xs font-medium mt-1.5 ml-1 flex items-center gap-1"><span className="inline-block w-1 h-1 rounded-full bg-red-500"></span>{urlError}</p>}
                             </div>
                         </div>
 
