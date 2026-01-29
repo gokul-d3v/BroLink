@@ -36,8 +36,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bento', bentoRoutes);
 
 import uploadRoutes from './routes/upload.routes';
+import metadataRoutes from './routes/metadata.routes';
+
 app.use('/uploads', express.static('uploads'));
 app.use('/api/upload', uploadRoutes);
+app.use('/api/metadata', metadataRoutes);
 
 
 
