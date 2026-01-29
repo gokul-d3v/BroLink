@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import api from "../lib/api";
+import { fetchLinkMetadata } from "../api/mockMetadata";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -26,6 +27,8 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
     const [editCtaText, setEditCtaText] = useState("");
     const [editImageFit, setEditImageFit] = useState<"cover" | "contain">("cover");
     const [urlError, setUrlError] = useState("");
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+    const [lastFetchedUrl, setLastFetchedUrl] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Crop states
@@ -44,6 +47,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
             setEditCtaText(initialData.ctaText || "");
             setEditImageFit(initialData.imageFit || "cover");
             setUrlError("");
+            setLastFetchedUrl("");
         }
     }, [isOpen, initialData]);
 
@@ -94,6 +98,12 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert("Please upload a valid image file (JPEG, PNG, WEBP, etc.)");
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = () => {
                 setImageToCrop(reader.result as string);
@@ -102,6 +112,37 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
             reader.readAsDataURL(file);
         }
     };
+
+    // Auto-fetch metadata effect
+    useEffect(() => {
+        const fetchMeta = async () => {
+            if (!editUrl || editUrl === lastFetchedUrl || !/^https?:\/\//i.test(editUrl)) return;
+
+            // Only auto-fetch if we don't have a custom image yet (or if we want to update it - user choice usually better if only empty)
+            // But user asked: "if i dont add image ... generate image"
+            if (editThumbnail) return;
+
+            try {
+                setIsFetchingMetadata(true);
+                setLastFetchedUrl(editUrl); // Prevent refetching same URL loop
+
+                const meta = await fetchLinkMetadata(editUrl);
+                if (meta.image) {
+                    setEditThumbnail(meta.image);
+                }
+                if (!editTitle && meta.title) {
+                    setEditTitle(meta.title);
+                }
+            } catch (e) {
+                console.error("Auto-fetch error", e);
+            } finally {
+                setIsFetchingMetadata(false);
+            }
+        };
+
+        const timer = setTimeout(fetchMeta, 800); // 800ms debounce
+        return () => clearTimeout(timer);
+    }, [editUrl, editThumbnail, lastFetchedUrl, editTitle]);
 
     const handleCropSave = async () => {
         if (!imageToCrop || !croppedAreaPixels) return;
@@ -190,6 +231,11 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
                                     placeholder="https://example.com/image.jpg"
                                     className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
                                 />
+                                {isFetchingMetadata && (
+                                    <div className="absolute right-14 top-3">
+                                        <span className="loading loading-spinner loading-xs opacity-50"></span>
+                                    </div>
+                                )}
                                 <input
                                     type="file"
                                     ref={fileInputRef}
