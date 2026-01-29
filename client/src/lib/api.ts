@@ -1,18 +1,13 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-    // If explicitly set in env (e.g. locally), use it
-    if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
-    }
-
-    // Fallback logic: 
-    // If we are on localhost, default to localhost:5000
+    // 1. If running on Localhost, prioritize Env var or default to local backend.
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:5000/api';
+        return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     }
 
-    // Otherwise (on Vercel/Production), default to the live Render server
+    // 2. If running on Vercel (or any non-local domain), FORCE the production backend.
+    // This ignores any incorrect VITE_API_URL that might have leaked into the build.
     return 'https://brolink-2.onrender.com/api';
 };
 
