@@ -222,7 +222,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
         <>
             <AnimatePresence mode="wait">
                 {isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-20 pb-4 sm:p-4" style={{ perspective: "2000px" }}>
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 pt-20 sm:p-4" style={{ perspective: "2000px" }}>
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -236,7 +236,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                         {/* Modal Content with Optimized Genie Effect */}
                         <motion.div
                             onClick={(e) => e.stopPropagation()}
-                            className="relative w-full max-w-[800px] bg-[#F8F9FB] dark:bg-black overflow-hidden rounded-[20px] sm:rounded-[32px] shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] sm:max-h-[90vh] flex flex-col"
+                            className="relative w-full max-w-[800px] bg-[#F8F9FB] dark:bg-black overflow-hidden rounded-[20px] sm:rounded-[32px] shadow-2xl border border-gray-100 dark:border-white/10 max-h-[80dvh] sm:max-h-[90vh] flex flex-col"
                             style={{
                                 transformStyle: "preserve-3d",
                                 willChange: "transform, opacity"
