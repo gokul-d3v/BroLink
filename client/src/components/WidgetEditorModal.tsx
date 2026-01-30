@@ -23,11 +23,11 @@ interface WidgetEditorModalProps {
 
 export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, buttonRef, title }: WidgetEditorModalProps) => {
     // Local edit states
-    const [editTitle, setEditTitle] = useState("");
-    const [editUrl, setEditUrl] = useState("");
-    const [editThumbnail, setEditThumbnail] = useState("");
-    const [editCtaText, setEditCtaText] = useState("");
-    const [editImageFit, setEditImageFit] = useState<"cover" | "contain">("cover");
+    const [editTitle, setEditTitle] = useState(initialData.customTitle || "");
+    const [editUrl, setEditUrl] = useState(initialData.url || "");
+    const [editThumbnail, setEditThumbnail] = useState(initialData.customImage || "");
+    const [editCtaText, setEditCtaText] = useState(initialData.ctaText || "");
+    const [editImageFit, setEditImageFit] = useState<"cover" | "contain">(initialData.imageFit || "cover");
     const [urlError, setUrlError] = useState("");
     const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const [lastFetchedUrl, setLastFetchedUrl] = useState("");

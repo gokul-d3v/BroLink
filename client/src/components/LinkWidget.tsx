@@ -11,11 +11,11 @@ import { Button } from "./ui/button";
 // Removed Dialog imports
 // Removed Label
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "./ui/dropdown-menu";
-import { cn, generateId } from "../lib/utils";
+import { cn } from "../lib/utils";
 
 export interface WidgetData {
     id: string;
-    size: "1x1" | "2x1" | "2x2" | "1x2";
+    size: "1x1" | "2x1" | "2x2" | "1x2" | "3x1";
     url: string;
     customTitle?: string;
     customImage?: string;
@@ -68,7 +68,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
 
 
 
-    const resizeWidget = (newSize: "1x1" | "2x1" | "2x2" | "1x2") => {
+    const resizeWidget = (newSize: "1x1" | "2x1" | "2x2" | "1x2" | "3x1") => {
         onUpdate(data.id, { size: newSize });
     }
 
@@ -102,8 +102,12 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
         "2x1": "col-span-1 md:col-span-2 row-span-1",
         "2x2": "col-span-1 md:col-span-2 row-span-2",
         "1x2": "col-span-1 row-span-2",
+        "3x1": "col-span-1 md:col-span-3 row-span-1",
     }[data.size];
 
+
+    // Dynamic title size based on widget size
+    const titleSizeClass = data.size === "1x1" ? "text-lg" : "text-xl md:text-2xl";
     // If no URL is set, show Input State (Empty Widget)
     if (!data.url) {
         return (
@@ -127,24 +131,23 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                         <h3 className="font-bold text-gray-800 text-lg">Add a Link</h3>
                         <p className="text-sm text-gray-500 font-medium">Click to create a card</p>
                     </div>
-                    {isEditable && (
-                        <div className="absolute top-4 right-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-400 transition-all"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRemove(data.id, data.customImage);
-                                }}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    )}
                 </div>
 
-
+                {isEditable && (
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-400 transition-all"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRemove(data.id, data.customImage);
+                            }}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     }
@@ -214,7 +217,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                         </>
                     ) : (
                         // Fallback generic gradient if no image
-                        <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100" />
+                        <div className="h-full w-full bg-gradient-to-br from-gray-800 to-gray-900" />
                     )}
                 </div>
 
@@ -295,50 +298,46 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                 {/* FIXED: Visibility for Mobile - opacity-100 by default, sm:opacity-0 */}
                 {isEditable && (
                     <div
-                        className="absolute top-4 right-4 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-50 pointer-events-auto"
+                        className="absolute top-4 right-4 z-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button
-                                    ref={editButtonRef}
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md border border-white/20 shadow-sm transition-colors ring-1 ring-white/10"
-                                >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/40 hover:bg-white/80 backdrop-blur-sm shadow-sm transition-all focus:ring-0">
+                                    <MoreHorizontal className="h-4 w-4 text-gray-700" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[240px] rounded-[24px] p-2 shadow-2xl border-gray-100 bg-white/95 backdrop-blur-lg">
-                                {/* Size Options */}
-                                <div className="px-3 py-2">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Widget Size</span>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        <button onClick={() => resizeWidget("1x1")} className={cn("aspect-square rounded-lg border-2 flex items-center justify-center transition-all", data.size === "1x1" ? "border-purple-600 bg-purple-50 text-purple-600" : "border-gray-100 hover:border-gray-200 text-gray-300")}>
-                                            <div className="w-2.5 h-2.5 bg-current rounded-[1px]" />
-                                        </button>
-                                        <button onClick={() => resizeWidget("2x1")} className={cn("aspect-video rounded-lg border-2 flex items-center justify-center transition-all col-span-2", data.size === "2x1" ? "border-purple-600 bg-purple-50 text-purple-600" : "border-gray-100 hover:border-gray-200 text-gray-300")}>
-                                            <div className="w-5 h-2.5 bg-current rounded-[1px]" />
-                                        </button>
-                                        <button onClick={() => resizeWidget("2x2")} className={cn("aspect-square rounded-lg border-2 flex items-center justify-center transition-all col-span-2 row-span-2", data.size === "2x2" ? "border-purple-600 bg-purple-50 text-purple-600" : "border-gray-100 hover:border-gray-200 text-gray-300")}>
-                                            <div className="w-5 h-5 bg-current rounded-[1px]" />
-                                        </button>
-                                        <button onClick={() => resizeWidget("1x2")} className={cn("aspect-[1/2] rounded-lg border-2 flex items-center justify-center transition-all row-span-2", data.size === "1x2" ? "border-purple-600 bg-purple-50 text-purple-600" : "border-gray-100 hover:border-gray-200 text-gray-300")}>
-                                            <div className="w-2.5 h-5 bg-current rounded-[1px]" />
-                                        </button>
-                                    </div>
+                            <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl bg-white/90 backdrop-blur-xl border border-white/20 shadow-xl">
+                                <div className="grid grid-cols-3 gap-2 mb-2 p-1">
+                                    <button onClick={() => resizeWidget("1x1")} className={cn("aspect-square rounded-md flex items-center justify-center transition-all duration-200 col-span-1", data.size === "1x1" ? "bg-black text-white shadow-md scale-100" : "bg-gray-100/50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 hover:scale-105")}>
+                                        <div className="w-3 h-3 bg-current rounded-[1px] opacity-90" />
+                                    </button>
+                                    <button onClick={() => resizeWidget("2x1")} className={cn("aspect-[2/1] rounded-md flex items-center justify-center transition-all duration-200 col-span-2", data.size === "2x1" ? "bg-black text-white shadow-md scale-100" : "bg-gray-100/50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 hover:scale-105")}>
+                                        <div className="w-6 h-3 bg-current rounded-[1px] opacity-90" />
+                                    </button>
+                                    <button onClick={() => resizeWidget("1x2")} className={cn("aspect-[1/2] rounded-md flex items-center justify-center transition-all duration-200 col-span-1", data.size === "1x2" ? "bg-black text-white shadow-md scale-100" : "bg-gray-100/50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 hover:scale-105")}>
+                                        <div className="w-3 h-6 bg-current rounded-[1px] opacity-90" />
+                                    </button>
+
+                                    <button onClick={() => resizeWidget("2x2")} className={cn("aspect-square rounded-md flex items-center justify-center transition-all duration-200 col-span-2", data.size === "2x2" ? "bg-black text-white shadow-md scale-100" : "bg-gray-100/50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 hover:scale-105")}>
+                                        <div className="w-5 h-5 bg-current rounded-[1px] opacity-90" />
+                                    </button>
+
+                                    <button onClick={() => resizeWidget("3x1")} className={cn("aspect-[3/1] rounded-md flex items-center justify-center transition-all duration-200 col-span-3", data.size === "3x1" ? "bg-black text-white shadow-md scale-100" : "bg-gray-100/50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 hover:scale-105")}>
+                                        <div className="w-9 h-3 bg-current rounded-[1px] opacity-90" />
+                                    </button>
                                 </div>
-                                <DropdownMenuSeparator className="bg-gray-100/50 my-1" />
-                                <DropdownMenuItem onClick={() => onEdit(data, editButtonRef)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-50 focus:text-gray-900 text-gray-600 font-medium transition-colors">
+                                <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
+                                <DropdownMenuItem onClick={() => onEdit(data, editButtonRef)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-100/80 focus:text-gray-900 text-gray-600 font-medium transition-colors">
                                     <Pencil className="mr-2.5 h-4 w-4 text-gray-400" /> Edit Content
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => onRemove(data.id, data.customImage)} className="rounded-xl cursor-pointer py-2.5 px-3 text-red-500 focus:text-red-600 focus:bg-red-50 font-medium transition-colors">
-                                    <Trash2 className="mr-2.5 h-4 w-4" /> Remove
+                                    <Trash2 className="mr-2.5 h-4 w-4 opacity-80" /> Remove
                                 </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                            </DropdownMenuContent >
+                        </DropdownMenu >
+                    </div >
                 )}
 
                 {/* External Link Indicator */}
@@ -347,7 +346,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                         <ArrowUpRight className="h-4 w-4" />
                     </div>
                 </div>
-            </div>
+            </div >
         </>
     );
 };

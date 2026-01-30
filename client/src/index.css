@@ -20,7 +20,7 @@
   /* The new premium bento card style */
   .bento-card {
     @apply bg-white dark:bg-[#151515] border-none;
-    border-radius: 12px;
+    border-radius: 24px;
     /* Mobile friendly radius */
     /* Subtle, premium shadow */
     box-shadow:
@@ -34,7 +34,7 @@
 
   @media (min-width: 768px) {
     .bento-card {
-      border-radius: 12px;
+      border-radius: 32px;
     }
   }
 

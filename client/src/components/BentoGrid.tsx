@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
-import { Skeleton } from "./ui/skeleton";
+
 import { WidgetEditorModal } from "./WidgetEditorModal";
 // @ts-ignore
 import * as ReactGridLayout from "react-grid-layout";
@@ -63,6 +63,31 @@ const withWidth = (WrappedComponent: any) => {
 import { generateId } from "../lib/utils";
 
 const ResponsiveGridLayout = withWidth(Responsive);
+
+// Helper to find the first available 1x1 spot
+const findNextAvailablePosition = (layout: any[], cols: number = 4): { x: number, y: number } => {
+    if (!layout || layout.length === 0) return { x: 0, y: 0 };
+
+    // Create a set of occupied cells
+    const occupied = new Set<string>();
+    layout.forEach(item => {
+        for (let x = item.x; x < item.x + item.w; x++) {
+            for (let y = item.y; y < item.y + item.h; y++) {
+                occupied.add(`${x},${y}`);
+            }
+        }
+    });
+
+    let y = 0;
+    while (true) {
+        for (let x = 0; x < cols; x++) {
+            if (!occupied.has(`${x},${y}`)) {
+                return { x, y };
+            }
+        }
+        y++;
+    }
+};
 
 interface BentoGridProps {
     isEditable: boolean;
@@ -215,13 +240,14 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         // Explicitly add to layout to prevent alignment issues
         setLayouts((prev: any) => {
             const currentLayout = prev.lg || [];
-            // Find a spot: simple approach is to put it at the bottom
-            const y = Math.max(...currentLayout.map((l: any) => l.y + l.h), 0);
+
+            // Smart Placement: Find first available spot
+            const { x, y } = findNextAvailablePosition(currentLayout, 4);
 
             const newItem = {
                 i: id,
-                x: 0, // Start at left
-                y: y, // Start at bottom
+                x,
+                y,
                 w: 1,
                 h: 1,
                 minW: 1,
@@ -251,12 +277,46 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             }
         }
         setWidgets(prev => prev.filter(w => w.id !== id));
+
+        // Also remove from layouts to trigger recompaction
+        setLayouts((prev: any) => {
+            const newLayouts: any = { ...prev };
+            Object.keys(newLayouts).forEach(breakpoint => {
+                if (newLayouts[breakpoint]) {
+                    newLayouts[breakpoint] = newLayouts[breakpoint].filter((item: any) => item.i !== id);
+                }
+            });
+            return newLayouts;
+        });
     }, []);
 
     const updateWidget = useCallback((id: string, updates: Partial<WidgetData>) => {
         setWidgets((prev: WidgetData[]) => prev.map((w: WidgetData) =>
             w.id === id ? { ...w, ...updates } : w
         ));
+
+        // Sync layout if size changes
+        if (updates.size) {
+            setLayouts((prev: any) => {
+                const newLayouts: any = { ...prev };
+                Object.keys(newLayouts).forEach(key => {
+                    if (!newLayouts[key]) return;
+                    newLayouts[key] = newLayouts[key].map((l: any) => {
+                        if (l.i === id) {
+                            let w = 1; let h = 1;
+                            if (updates.size === "2x1") { w = 2; h = 1; }
+                            if (updates.size === "1x2") { w = 1; h = 2; }
+                            if (updates.size === "2x2") { w = 2; h = 2; }
+                            if (updates.size === "3x1") { w = 3; h = 1; }
+                            if (updates.size === "1x1") { w = 1; h = 1; }
+                            return { ...l, w, h };
+                        }
+                        return l;
+                    });
+                });
+                return newLayouts;
+            });
+        }
     }, []);
 
     const handleEditWidget = useCallback((data: WidgetData, buttonRef: { current: HTMLElement | null }) => {
@@ -281,6 +341,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                                 if (updates.size === "2x1") { w = 2; h = 1; }
                                 if (updates.size === "1x2") { w = 1; h = 2; }
                                 if (updates.size === "2x2") { w = 2; h = 2; }
+                                if (updates.size === "3x1") { w = 3; h = 1; }
                                 if (updates.size === "1x1") { w = 1; h = 1; }
                                 return { ...l, w, h };
                             }
@@ -295,6 +356,66 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             setActiveWidget(null);
         }
     };
+
+    const autoArrangeWidgets = useCallback(() => {
+        setLayouts((prev: any) => {
+            const newLayouts: any = { ...prev };
+
+            // Auto-arrange for each breakpoint
+            Object.keys(newLayouts).forEach(breakpoint => {
+                if (!newLayouts[breakpoint]) return;
+
+                const cols = breakpoint === 'lg' || breakpoint === 'md' ? 4 : breakpoint === 'sm' || breakpoint === 'xs' ? 2 : 1;
+                let currentX = 0;
+                let currentY = 0;
+
+                // Sort by original position (y, then x) to maintain relative order
+                const sortedItems = [...newLayouts[breakpoint]].sort((a: any, b: any) => {
+                    if (a.y !== b.y) return a.y - b.y;
+                    return a.x - b.x;
+                });
+
+                newLayouts[breakpoint] = sortedItems.map((item: any) => {
+                    const width = item.w;
+
+                    // If widget doesn't fit in current row, move to next row
+                    if (currentX + width > cols) {
+                        currentX = 0;
+                        currentY++;
+                    }
+
+                    const newItem = {
+                        ...item,
+                        x: currentX,
+                        y: currentY
+                    };
+
+                    currentX += width;
+
+                    // Move to next row if we've filled this one
+                    if (currentX >= cols) {
+                        currentX = 0;
+                        currentY++;
+                    }
+
+                    return newItem;
+                });
+            });
+
+            return newLayouts;
+        });
+    }, []);
+
+    // Auto-arrange widgets whenever the widget list changes
+    useEffect(() => {
+        if (widgets.length > 0 && !isLoading) {
+            // Small delay to ensure layout state is ready
+            const timer = setTimeout(() => {
+                autoArrangeWidgets();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [widgets.length, autoArrangeWidgets, isLoading]);
 
 
     // Handle layout changes
@@ -321,17 +442,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
     // Skeleton Loading
 
-    if (isLoading && !widgets.length) {
-        return (
-            <div className="max-w-7xl mx-auto px-6 pt-24 pb-10 md:py-24 relative z-10">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 auto-rows-[280px]">
-                    {[...Array(8)].map((_, i) => (
-                        <Skeleton key={i} className={`h-[280px] rounded-3xl ${i === 0 ? 'col-span-2 row-span-2' : 'col-span-1 row-span-1'}`} />
-                    ))}
-                </div>
-            </div>
-        );
-    }
+
 
     // Only show "User not found" if we are NOT in editable mode.
     // If we are editable (Admin), we should show the empty grid so the user can add widgets.
@@ -402,7 +513,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             rowHeight={280}
                             isDraggable={isEditable}
                             isResizable={false}
-                            compactType="vertical"
+                            compactType="horizontal"
                             preventCollision={false}
                             margin={[24, 24]}
                             containerPadding={[0, 0]}
@@ -429,7 +540,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 <motion.button
                     ref={addWidgetButtonRef}
                     onClick={addWidget}
-                    className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200"
+                    className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[100] h-14 w-14 sm:h-16 sm:w-16 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200"
                     title="Add New Widget"
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
