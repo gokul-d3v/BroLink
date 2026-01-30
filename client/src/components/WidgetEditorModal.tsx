@@ -18,9 +18,10 @@ interface WidgetEditorModalProps {
     onSave: (data: Partial<WidgetData>) => void;
     initialData?: Partial<WidgetData>;
     title?: string; // "Edit Widget" or "Add Widget"
+    buttonRef?: React.RefObject<HTMLButtonElement | null>; // Reference to the Add Widget button for genie effect
 }
 
-export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {} }: WidgetEditorModalProps) => {
+export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, buttonRef }: WidgetEditorModalProps) => {
     // Local edit states
     const [editTitle, setEditTitle] = useState("");
     const [editUrl, setEditUrl] = useState("");
@@ -194,37 +195,88 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {} }:
 
 
 
+    // Calculate initial position offset from button to modal center
+    const getInitialOffset = () => {
+        if (!buttonRef?.current) return { x: 0, y: 0 };
+
+        const buttonRect = buttonRef.current.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        // Button center position
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+
+        // Modal center position (centered in viewport)
+        const modalCenterX = windowWidth / 2;
+        const modalCenterY = windowHeight / 2;
+
+        // Calculate offset
+        return {
+            x: buttonCenterX - modalCenterX,
+            y: buttonCenterY - modalCenterY
+        };
+    };
+
     return (
         <>
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-20 pb-4 sm:p-4">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-20 pb-4 sm:p-4" style={{ perspective: "2000px" }}>
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
                             onClick={onClose}
                             className="absolute inset-0 bg-black/80"
                         />
 
-                        {/* Modal Content */}
+                        {/* Modal Content with Optimized Genie Effect */}
                         <motion.div
                             onClick={(e) => e.stopPropagation()}
                             className="relative w-full max-w-[800px] bg-[#F8F9FB] dark:bg-black overflow-hidden rounded-[20px] sm:rounded-[32px] shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] sm:max-h-[90vh] flex flex-col"
+                            style={{
+                                transformStyle: "preserve-3d",
+                                willChange: "transform, opacity"
+                            }}
                             initial={{
-                                scale: 0.95,
-                                opacity: 0
+                                scale: 0.08,
+                                scaleY: 0.03,
+                                opacity: 0,
+                                rotateX: 75,
+                                x: getInitialOffset().x,
+                                y: getInitialOffset().y
                             }}
                             animate={{
                                 scale: 1,
-                                opacity: 1
+                                scaleY: 1,
+                                opacity: 1,
+                                rotateX: 0,
+                                x: 0,
+                                y: 0
                             }}
                             exit={{
-                                scale: 0.95,
-                                opacity: 0
+                                scale: 0.08,
+                                scaleY: 0.03,
+                                opacity: 0,
+                                rotateX: 75,
+                                x: getInitialOffset().x,
+                                y: getInitialOffset().y,
+                                transition: {
+                                    duration: 0.35,
+                                    ease: [0.32, 0, 0.67, 0]
+                                }
                             }}
-                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            transition={{
+                                type: "spring",
+                                damping: 22,
+                                stiffness: 220,
+                                mass: 0.75,
+                                restDelta: 0.001,
+                                restSpeed: 0.001
+                            }}
                         >
                             {/* Header */}
                             <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-white/10 sticky top-0 z-10">

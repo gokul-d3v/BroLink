@@ -194,6 +194,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
     // State for Add Widget Modal
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const addWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
     const handleCreateWidget = (data: Partial<WidgetData>) => {
         const id = generateId();
@@ -411,6 +412,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             {/* Floating Add Button */}
             {isEditable && !isAddModalOpen && (
                 <motion.button
+                    ref={addWidgetButtonRef}
                     onClick={addWidget}
                     className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200"
                     title="Add New Widget"
@@ -432,6 +434,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onSave={handleCreateWidget}
+                buttonRef={addWidgetButtonRef}
                 title="Add New Widget"
             />
         </div>
