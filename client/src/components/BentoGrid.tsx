@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
@@ -65,51 +65,14 @@ const ResponsiveGridLayout = withWidth(Responsive);
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-const INITIAL_WIDGETS: WidgetData[] = [
-    // Large Feature Widget (2x2)
-    { id: '1', size: "2x2", url: "https://unsplash.com/photos/berlin-architecture", customTitle: "Berlin Architecture" },
-    // Wide Horizontal Widget (2x1)
-    { id: '2', size: "2x1", url: "https://buymeacoffee.com", customTitle: "Support my Work 💐" },
-    // Square Small Widgets (1x1)
-    { id: '3', size: "1x1", url: "https://instagram.com", customTitle: "Instagram" },
-    { id: '4', size: "1x1", url: "https://linkedin.com", customTitle: "LinkedIn" },
-    // Tall Vertical Widget (1x2)
-    { id: '5', size: "1x2", url: "https://medium.com/@studio-ghibli/how-to-paint-like-hayao-miyazaki", customTitle: "How to Paint Like Hayao Miyazaki" },
-    // More Squares
-    { id: '6', size: "1x1", url: "https://twitter.com", customTitle: "My Tweeeets" },
-    { id: '7', size: "1x1", url: "https://youtube.com", customTitle: "Hot takes" },
-    { id: '8', size: "1x1", url: "https://dribbble.com", customTitle: "iOS UI Kit" },
-];
-
 interface BentoGridProps {
     isEditable: boolean;
     publicUsername?: string;
 }
 
 export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
-    // Generate Layout helper
-    const generateLayout = useCallback((currentWidgets: WidgetData[]) => {
-        return currentWidgets.map((widget, i) => {
-            let w = 1;
-            let h = 1;
-            if (widget.size === "2x1") { w = 2; h = 1; }
-            if (widget.size === "1x2") { w = 1; h = 2; }
-            if (widget.size === "2x2") { w = 2; h = 2; }
-            // Basic layout packing logic
-            return {
-                i: widget.id,
-                x: i % 4,
-                y: Math.floor(i / 4) * 2,
-                w: w,
-                h: h,
-                minW: 1,
-                minH: 1
-            };
-        });
-    }, []);
-
-    const [widgets, setWidgets] = useState<WidgetData[]>(INITIAL_WIDGETS);
-    const [layouts, setLayouts] = useState<any>({ lg: generateLayout(INITIAL_WIDGETS) });
+    const [widgets, setWidgets] = useState<WidgetData[]>([]);
+    const [layouts, setLayouts] = useState<any>({ lg: [] });
     const [isLoading, setIsLoading] = useState(true);
 
     const isRemoteUpdate = useRef(false);
@@ -384,56 +347,85 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
                 {/* Link Widgets Grid - Full Width with Left Padding for Sidebar */}
                 <div className="w-full pt-4 lg:pt-12">
-                    <ResponsiveGridLayout
-                        className="layout"
-                        layouts={derivedLayouts}
-                        onLayoutChange={handleLayoutChange}
-                        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                        cols={{ lg: 4, md: 4, sm: 2, xs: 2, xxs: 1 }}
-                        rowHeight={280}
-                        isDraggable={isEditable}
-                        isResizable={false}
-                        compactType="vertical"
-                        preventCollision={false}
-                        margin={[24, 24]}
-                        containerPadding={[0, 0]}
-                    >
-                        {widgets.map((widget) => (
-                            <div key={widget.id} className="h-full w-full">
-                                <div className="h-full">
-                                    <LinkWidget
-                                        data={widget}
-                                        onUpdate={updateWidget}
-                                        onRemove={removeWidget}
-                                        isEditable={isEditable}
-                                    />
-                                </div>
+                    {/* Empty State */}
+                    {widgets.length === 0 && !isLoading && (
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+                            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+                                <span className="text-4xl">📦</span>
                             </div>
-                        ))}
-                    </ResponsiveGridLayout>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 tracking-tight">
+                                {isEditable ? "No widgets yet" : "Nothing to see here"}
+                            </h2>
+                            <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mb-8">
+                                {isEditable
+                                    ? "Start building your Bento grid by adding your first widget."
+                                    : "This page doesn't have any widgets yet."}
+                            </p>
+                            {isEditable && (
+                                <button
+                                    onClick={addWidget}
+                                    className="px-8 py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg flex items-center gap-3"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    Add Your First Widget
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Grid Layout */}
+                    {widgets.length > 0 && (
+                        <ResponsiveGridLayout
+                            className="layout"
+                            layouts={derivedLayouts}
+                            onLayoutChange={handleLayoutChange}
+                            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                            cols={{ lg: 4, md: 4, sm: 2, xs: 2, xxs: 1 }}
+                            rowHeight={280}
+                            isDraggable={isEditable}
+                            isResizable={false}
+                            compactType="vertical"
+                            preventCollision={false}
+                            margin={[24, 24]}
+                            containerPadding={[0, 0]}
+                        >
+                            {widgets.map((widget) => (
+                                <div key={widget.id} className="h-full w-full">
+                                    <div className="h-full">
+                                        <LinkWidget
+                                            data={widget}
+                                            onUpdate={updateWidget}
+                                            onRemove={removeWidget}
+                                            isEditable={isEditable}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </ResponsiveGridLayout>
+                    )}
                 </div>
             </div>
             {/* Floating Add Button */}
-            <AnimatePresence>
-                {isEditable && !isAddModalOpen && (
-                    <motion.button
-                        key="add-widget-button"
-                        layoutId="add-widget-modal"
-                        onClick={addWidget}
-                        className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 border-4 border-white/20 hover:border-white/40"
-                        title="Add New Card"
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            {isEditable && !isAddModalOpen && (
+                <motion.button
+                    onClick={addWidget}
+                    className="fixed bottom-8 right-8 z-[100] h-16 w-16 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200"
+                    title="Add New Widget"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </motion.button>
+            )}
+
 
             {/* Add Widget Modal */}
             <WidgetEditorModal

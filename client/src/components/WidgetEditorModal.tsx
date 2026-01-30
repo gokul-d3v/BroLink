@@ -1,14 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import api from "../lib/api";
 import { fetchLinkMetadata } from "../api/mockMetadata";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Link as LinkIcon, Upload } from "lucide-react";
+import { Link as LinkIcon, Upload, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { WidgetData } from "./LinkWidget";
 
@@ -20,7 +20,7 @@ interface WidgetEditorModalProps {
     title?: string; // "Edit Widget" or "Add Widget"
 }
 
-export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, title = "Edit Widget" }: WidgetEditorModalProps) => {
+export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {} }: WidgetEditorModalProps) => {
     // Local edit states
     const [editTitle, setEditTitle] = useState("");
     const [editUrl, setEditUrl] = useState("");
@@ -39,9 +39,14 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-    // Reset state when modal opens with new data
+    // Track previous isOpen state to detect modal opening
+    const prevIsOpenRef = useRef(isOpen);
+
+    // Reset state ONLY when modal transitions from closed to open
     useEffect(() => {
-        if (isOpen) {
+        const justOpened = isOpen && !prevIsOpenRef.current;
+
+        if (justOpened) {
             setEditTitle(initialData.customTitle || "");
             setEditUrl(initialData.url || "");
             setEditThumbnail(initialData.customImage || "");
@@ -50,7 +55,9 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
             setUrlError("");
             setLastFetchedUrl("");
         }
-    }, [isOpen, initialData]);
+
+        prevIsOpenRef.current = isOpen;
+    }, [isOpen, initialData.customTitle, initialData.url, initialData.customImage, initialData.ctaText, initialData.imageFit]);
 
     const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -164,7 +171,12 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
 
     const handleSave = () => {
         // Validation
-        if (editUrl && !/^https?:\/\//i.test(editUrl)) {
+        if (!editUrl || editUrl.trim() === "") {
+            setUrlError("URL is required");
+            return;
+        }
+
+        if (!/^https?:\/\//i.test(editUrl)) {
             setUrlError("URL must start with http:// or https://");
             return;
         }
@@ -184,138 +196,223 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, t
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-                <DialogContent
-                    className="sm:max-w-[420px] p-0 gap-0 rounded-xl overflow-hidden border-none shadow-2xl bg-transparent fixed inset-0 z-50 flex items-center justify-center pointer-events-none !translate-x-0 !translate-y-0 !top-0 !left-0 w-full h-full max-w-none"
-                    style={{ transform: 'none' }}
-                >
-                    <motion.div
-                        layoutId="add-widget-modal"
-                        className="w-full max-w-[420px] bg-[#fafafa] overflow-hidden rounded-xl pointer-events-auto shadow-2xl relative"
-                    >
-                        <DialogHeader className="p-6 pb-2 bg-white">
-                            <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">{title}</DialogTitle>
-                        </DialogHeader>
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-20 pb-4 sm:p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={onClose}
+                            className="absolute inset-0 bg-black/80"
+                        />
 
-                        <div className="p-6 space-y-5 bg-white max-h-[70vh] overflow-y-auto">
-                            <div className="space-y-2">
-                                <Label htmlFor="title" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Title</Label>
-                                <Input
-                                    id="title"
-                                    value={editTitle}
-                                    onChange={(e) => setEditTitle(e.target.value)}
-                                    placeholder="Display title"
-                                    className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-lg px-4"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="url" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Link URL</Label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
-                                    <Input
-                                        id="url"
-                                        value={editUrl}
-                                        onChange={(e) => {
-                                            setEditUrl(e.target.value);
-                                            if (urlError) setUrlError("");
-                                        }}
-                                        placeholder="https://..."
-                                        className={cn(
-                                            "h-12 pl-10 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600",
-                                            urlError && "border-red-500 focus:border-red-500 focus:ring-red-500/10 bg-red-50/50"
-                                        )}
-                                    />
-                                    {urlError && <p className="text-red-500 text-xs font-medium mt-1.5 ml-1 flex items-center gap-1"><span className="inline-block w-1 h-1 rounded-full bg-red-500"></span>{urlError}</p>}
+                        {/* Modal Content */}
+                        <motion.div
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-[800px] bg-[#F8F9FB] dark:bg-black overflow-hidden rounded-[20px] sm:rounded-[32px] shadow-2xl border border-gray-100 dark:border-white/10 max-h-[85vh] sm:max-h-[90vh] flex flex-col"
+                            initial={{
+                                scale: 0.95,
+                                opacity: 0
+                            }}
+                            animate={{
+                                scale: 1,
+                                opacity: 1
+                            }}
+                            exit={{
+                                scale: 0.95,
+                                opacity: 0
+                            }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        >
+                            {/* Header */}
+                            <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-white/10 sticky top-0 z-10">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Add New Widget</h2>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                                        <X className="h-5 w-5" />
+                                    </Button>
                                 </div>
                             </div>
 
-                            {/* Thumbnail Input */}
-                            <div className="space-y-2">
-                                <Label htmlFor="thumbnail" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Thumbnail Image</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="thumbnail"
-                                        value={editThumbnail}
-                                        onChange={(e) => setEditThumbnail(e.target.value)}
-                                        placeholder="https://example.com/image.jpg"
-                                        className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
-                                    />
-                                    {isFetchingMetadata && (
-                                        <div className="absolute right-14 top-3">
-                                            <span className="loading loading-spinner loading-xs opacity-50"></span>
+                            {/* Form Content */}
+                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto bg-[#F2F2F7] dark:bg-[#000000] flex-1">
+                                {/* Top Row: Title/URL (2/3) + Thumbnail (1/3) */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                                    {/* Left Column: Title & URL */}
+                                    <div className="md:col-span-2 bg-white dark:bg-[#1C1C1E] rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
+                                        <div className="flex flex-col">
+                                            <div className="relative group px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-white/10">
+                                                <Label htmlFor="title" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                    Title
+                                                </Label>
+                                                <Input
+                                                    id="title"
+                                                    type="text"
+                                                    value={editTitle}
+                                                    onChange={(e) => setEditTitle(e.target.value)}
+                                                    placeholder="Display title"
+                                                    className="h-8 -ml-3 w-[calc(100%+1.5rem)] border-none shadow-none focus-visible:ring-0 bg-transparent text-[15px] font-normal text-gray-900 dark:text-white placeholder:text-gray-400 px-3"
+                                                />
+                                            </div>
+
+                                            <div className="relative group px-4 sm:px-5 py-3">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <Label htmlFor="url" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                        Link URL <span className="text-red-500">*</span>
+                                                    </Label>
+                                                    {isFetchingMetadata && (
+                                                        <div className="w-3 h-3 border-2 border-gray-200 border-t-black dark:border-t-white rounded-full animate-spin"></div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <LinkIcon className="h-4 w-4 text-black dark:text-white flex-shrink-0" />
+                                                    <Input
+                                                        id="url"
+                                                        type="url"
+                                                        required
+                                                        value={editUrl}
+                                                        onChange={(e) => {
+                                                            setEditUrl(e.target.value);
+                                                            if (urlError) setUrlError("");
+                                                        }}
+                                                        placeholder="https://..."
+                                                        className={cn(
+                                                            "h-8 -ml-3 w-full border-none shadow-none focus-visible:ring-0 bg-transparent text-[15px] font-normal text-gray-900 dark:text-white placeholder:text-gray-400 px-3",
+                                                            urlError && "text-red-500"
+                                                        )}
+                                                    />
+                                                </div>
+                                                {urlError && (
+                                                    <p className="text-xs text-red-500 mt-1 ml-6">{urlError}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                    )}
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleImageSelect}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-12 w-12 shrink-0 rounded-xl border-gray-200 bg-gray-50 hover:bg-white transition-all shadow-sm"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        title="Upload Image"
-                                    >
-                                        <Upload className="h-5 w-5 text-gray-500" />
-                                    </Button>
+                                    </div>
+
+                                    {/* Right Column: Thumbnail */}
+                                    <div className="md:col-span-1 bg-white dark:bg-[#1C1C1E] rounded-[18px] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col h-full">
+                                        <Label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                                            Thumbnail
+                                        </Label>
+
+                                        <div className="flex-1 flex flex-col gap-3">
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="flex-1 min-h-[120px] rounded-xl overflow-hidden relative group cursor-pointer bg-gray-50 dark:bg-[#2C2C2E] transition-all hover:opacity-90 flex items-center justify-center border border-dashed border-gray-200 dark:border-white/10"
+                                            >
+                                                {editThumbnail ? (
+                                                    <img src={editThumbnail} alt="Preview" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center gap-2">
+                                                        <div className="w-10 h-10 rounded-full bg-white dark:bg-[#3A3A3C] shadow-sm flex items-center justify-center text-black dark:text-white">
+                                                            <Upload className="h-5 w-5" />
+                                                        </div>
+                                                        <p className="text-xs text-gray-400">Add Image</p>
+                                                    </div>
+                                                )}
+
+                                                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="bg-black/80 backdrop-blur text-white text-[10px] px-2 py-1 rounded-full">Edit</div>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleImageSelect}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Row: Image Fit (1/3) + CTA (2/3) */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                                    <div className="md:col-span-1 bg-white dark:bg-[#1C1C1E] rounded-[18px] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                                        <Label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 block">
+                                            Image Fit
+                                        </Label>
+                                        {/* Apple-style Segmented Control */}
+                                        <div className="bg-[#EEEEEF] dark:bg-[#2C2C2E] p-1 rounded-lg flex relative">
+                                            <motion.div
+                                                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-[#636366] rounded-md shadow-sm z-0"
+                                                initial={false}
+                                                animate={{ x: editImageFit === "cover" ? 0 : "100%" }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditImageFit("cover")}
+                                                className={cn(
+                                                    "flex-1 py-1.5 text-[13px] font-medium relative z-10 transition-colors text-center rounded-md",
+                                                    editImageFit === "cover" ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-300"
+                                                )}
+                                            >
+                                                Fill
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditImageFit("contain")}
+                                                className={cn(
+                                                    "flex-1 py-1.5 text-[13px] font-medium relative z-10 transition-colors text-center rounded-md",
+                                                    editImageFit === "contain" ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-300"
+                                                )}
+                                            >
+                                                Fit
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="md:col-span-2 bg-white dark:bg-[#1C1C1E] rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col justify-center overflow-hidden">
+                                        <div className="px-4 sm:px-5 py-2">
+                                            <Label htmlFor="cta" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                Button Label
+                                            </Label>
+                                            <Input
+                                                id="cta"
+                                                type="text"
+                                                value={editCtaText}
+                                                onChange={(e) => setEditCtaText(e.target.value)}
+                                                placeholder="e.g. Visit Website"
+                                                className="h-10 -ml-3 w-[calc(100%+1.5rem)] border-none shadow-none focus-visible:ring-0 bg-transparent text-[15px] font-normal text-gray-900 dark:text-white placeholder:text-gray-400 px-3"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Image Fit Toggle */}
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Image Fit</Label>
-                                <div className="flex gap-2 bg-gray-50 rounded-xl p-1 border border-gray-100">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => setEditImageFit("cover")}
-                                        className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "cover" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
-                                    >
-                                        Fill (Cover)
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => setEditImageFit("contain")}
-                                        className={cn("flex-1 rounded-xl font-semibold transition-all", editImageFit === "contain" ? "bg-white text-black shadow-md" : "text-gray-400 hover:text-gray-600")}
-                                    >
-                                        Fit (Contain)
-                                    </Button>
-                                </div>
+                            {/* Footer */}
+                            <div className="p-4 sm:p-5 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-100 dark:border-white/10 flex items-center justify-end gap-3 z-10">
+                                <Button
+                                    variant="ghost"
+                                    onClick={onClose}
+                                    className="text-[15px] font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full px-4 sm:px-6"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleSave}
+                                    className="px-5 py-2.5 rounded-full font-medium shadow-lg transition-all bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 flex items-center gap-2"
+                                >
+                                    Save
+                                </Button>
                             </div>
-
-                            {/* CTA Input */}
-                            <div className="space-y-2">
-                                <Label htmlFor="cta" className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Button Label (CTA)</Label>
-                                <Input
-                                    id="cta"
-                                    value={editCtaText}
-                                    onChange={(e) => setEditCtaText(e.target.value)}
-                                    placeholder="e.g. Read More, Buy Now"
-                                    className="h-12 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-purple-500/20 focus:ring-4 focus:ring-purple-500/10 transition-all font-medium text-gray-600 px-4"
-                                />
-                            </div>
-                        </div>
-
-                        <DialogFooter className="p-4 bg-gray-50/50 border-t border-gray-100 flex gap-3">
-                            <Button variant="ghost" onClick={onClose} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-white hover:shadow-sm font-semibold">Cancel</Button>
-                            <Button onClick={handleSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all font-bold shadow-lg shadow-black/10">Save Changes</Button>
-                        </DialogFooter>
-                    </motion.div>
-                </DialogContent>
-            </Dialog>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Crop Modal */}
             <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
-                <DialogContent className="sm:max-w-[600px] p-0 gap-0 rounded-xl overflow-hidden border-none shadow-2xl bg-[#fafafa]">
-                    <DialogHeader className="p-6 pb-2 bg-white flex flex-row items-center justify-between">
-                        <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight">Crop Image</DialogTitle>
-                    </DialogHeader>
+                <DialogContent className="sm:max-w-[600px] p-0 gap-0 rounded-3xl overflow-hidden border-none shadow-2xl bg-white dark:bg-gray-900">
+                    <div className="px-8 pt-8 pb-6 border-b border-gray-100 dark:border-gray-800">
+                        <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Crop Image</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">Adjust the crop area and zoom</DialogDescription>
+                    </div>
 
                     <div className="relative h-[400px] w-full bg-black/5">
                         {imageToCrop && (

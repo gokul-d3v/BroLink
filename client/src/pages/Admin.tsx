@@ -91,17 +91,17 @@ export const Admin = () => {
                 <button
                     onClick={handleViewPublic}
                     disabled={!username}
-                    className="px-5 py-2.5 rounded-full font-bold shadow-lg transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-full w-10 h-10 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200 shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="View Public Page"
                 >
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden sm:inline">View Public</span>
+                    <Eye className="h-[1.2rem] w-[1.2rem]" />
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="px-5 py-2.5 rounded-full font-bold shadow-lg transition-all bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border border-transparent flex items-center gap-2"
+                    className="rounded-full w-10 h-10 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200 shadow-lg flex items-center justify-center"
+                    title="Logout"
                 >
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Logout</span>
+                    <LogOut className="h-[1.2rem] w-[1.2rem]" />
                 </button>
             </div>
 
