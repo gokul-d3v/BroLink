@@ -38,9 +38,9 @@ const ResponsiveGridLayout = withWidth(Responsive);
 // 3 Column Layout
 const DEFAULT_LAYOUT = [
     { i: "welcome", x: 0, y: 0, w: 2, h: 2 },
-    { i: "email", x: 2, y: 0, w: 1, h: 2 },
-    { i: "password", x: 0, y: 2, w: 1, h: 1 },
-    { i: "enter", x: 1, y: 2, w: 1, h: 1 },
+    { i: "email", x: 2, y: 0, w: 1, h: 1 },
+    { i: "password", x: 2, y: 1, w: 1, h: 1 },
+    { i: "enter", x: 0, y: 2, w: 2, h: 1 },
     { i: "quick", x: 2, y: 2, w: 1, h: 1 },
 ];
 
@@ -55,6 +55,16 @@ export const AdminLogin = () => {
     });
 
     const navigate = useNavigate();
+
+    // Migration: Fix layout if using old version (Email h=2)
+    useEffect(() => {
+        const currentLg = layouts.lg || [];
+        const emailWidget = currentLg.find((w: any) => w.i === 'email');
+        if (emailWidget && emailWidget.h === 2) {
+            setLayouts({ lg: DEFAULT_LAYOUT });
+            localStorage.setItem("neo-bento-layout", JSON.stringify({ lg: DEFAULT_LAYOUT }));
+        }
+    }, []);
 
     // Check if user is already logged in
     useEffect(() => {
@@ -96,10 +106,10 @@ export const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#050505] text-white flex flex-col font-sans selection:bg-purple-500/30">
+        <div className="min-h-screen w-full bg-[#fbfbfd] text-gray-900 flex flex-col selection:bg-purple-500/30">
             {/* Header */}
             <header className="w-full max-w-7xl mx-auto px-6 py-8 flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight text-white">Brototype</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Brototype</h1>
             </header>
 
             {/* Main Content */}
@@ -160,30 +170,27 @@ export const AdminLogin = () => {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="creative@studio.com"
+                                    placeholder=""
                                     className="w-full h-14 bg-white/50 backdrop-blur-sm rounded-xl px-4 font-medium text-lg placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10 transition-all mb-auto"
                                 />
-                                <p className="text-xs font-medium italic opacity-60 mt-4">
-                                    Hint: use your work email
-                                </p>
                             </div>
                         </div>
 
                         {/* Password Widget */}
                         <div key="password" className="relative group">
-                            <div className="h-full w-full bg-[#A0E8AF] rounded-[32px] p-6 sm:p-8 flex flex-col justify-center text-zinc-900">
-                                <div className="flex justify-between items-center mb-3">
+                            <div className="h-full w-full bg-[#A0E8AF] rounded-[32px] p-8 flex flex-col text-zinc-900">
+                                <div className="flex justify-between items-center mb-4">
                                     <label className="text-xs font-bold tracking-widest uppercase opacity-70">
                                         Password
                                     </label>
                                 </div>
-                                <div className="relative">
+                                <div className="relative mb-auto">
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full h-12 bg-white/50 backdrop-blur-sm rounded-xl px-4 font-bold text-lg placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10 transition-all tracking-widest pr-10"
+                                        placeholder=""
+                                        className="w-full h-14 bg-white/50 backdrop-blur-sm rounded-xl px-4 font-medium text-lg placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10 transition-all pr-10"
                                     />
                                     <button
                                         type="button"

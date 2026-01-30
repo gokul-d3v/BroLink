@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
@@ -299,6 +300,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         });
 
         setWidgetToDelete(null);
+        toast.success("Widget deleted");
     }, [widgetToDelete]);
 
     const updateWidget = useCallback((id: string, updates: Partial<WidgetData>) => {

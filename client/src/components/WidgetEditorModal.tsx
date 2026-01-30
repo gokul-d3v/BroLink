@@ -6,6 +6,7 @@ import api from "../lib/api";
 import { fetchLinkMetadata } from "../api/mockMetadata";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { toast } from "sonner";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Link as LinkIcon, Upload, X } from "lucide-react";
@@ -36,6 +37,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
     // Crop states
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -157,6 +159,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
         if (!imageToCrop || !croppedAreaPixels) return;
 
         try {
+            setIsUploading(true);
             const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
             const formData = new FormData();
             formData.append('file', croppedBlob, 'cropped-image.jpg');
@@ -167,6 +170,9 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
             setImageToCrop(null);
         } catch (error) {
             console.error("Upload failed", error);
+            toast.error("Failed to upload image");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -496,8 +502,17 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                         </div>
 
                         <div className="flex gap-3">
-                            <Button variant="ghost" onClick={() => setIsCropModalOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-semibold">Cancel</Button>
-                            <Button onClick={handleCropSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 font-bold shadow-lg shadow-black/10">Set Image</Button>
+                            <Button variant="ghost" onClick={() => setIsCropModalOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-semibold" disabled={isUploading}>Cancel</Button>
+                            <Button onClick={handleCropSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 font-bold shadow-lg shadow-black/10" disabled={isUploading}>
+                                {isUploading ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Uploading...</span>
+                                    </div>
+                                ) : (
+                                    "Set Image"
+                                )}
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>
