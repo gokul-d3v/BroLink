@@ -20,7 +20,7 @@ export const Public = () => {
 
     return (
         <div className="relative">
-            {/* BroLinks Logo - fades out when scrolling down */}
+            {/* Brototype Logo - fades out when scrolling down */}
             <div
                 className={`fixed top-4 left-4 sm:top-6 sm:left-6 z-[200] transition-opacity duration-300 ${isScrolled ? 'opacity-0' : 'opacity-100'
                     }`}
