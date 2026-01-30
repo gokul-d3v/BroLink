@@ -1,19 +1,17 @@
 // ... imports
 // ... imports
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 // Removed Cropper imports as they are now in WidgetEditorModal
 // Removed api import (unused)
 import { type LinkMetadata, fetchLinkMetadata } from "../api/mockMetadata";
 import { Card } from "./ui/card";
-import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
-import { Link as LinkIcon, AlertCircle, ArrowUpRight, Pencil, MoreHorizontal, Trash2, Github, Linkedin, Twitter, Youtube, Facebook, Instagram, Dribbble, Twitch } from "lucide-react";
+import { Link as LinkIcon, AlertCircle, ArrowUpRight, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 // Removed Dialog imports
 // Removed Label
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "./ui/dropdown-menu";
-import { cn } from "../lib/utils";
-import { WidgetEditorModal } from "./WidgetEditorModal";
+import { cn, generateId } from "../lib/utils";
 
 export interface WidgetData {
     id: string;
@@ -30,35 +28,24 @@ interface LinkWidgetProps {
     data: WidgetData;
     onUpdate: (id: string, updates: Partial<WidgetData>) => void;
     onRemove: (id: string, imageUrl?: string) => void;
+    onEdit: (data: WidgetData, buttonRef: { current: HTMLElement | null }) => void;
     isEditable?: boolean;
 }
 
 
-const getSocialIcon = (url: string) => {
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('github')) return <Github className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('twitter') || lowerUrl.includes('x.com')) return <Twitter className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('linkedin')) return <Linkedin className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('youtube')) return <Youtube className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('facebook')) return <Facebook className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('instagram')) return <Instagram className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('dribbble')) return <Dribbble className="h-8 w-8 text-white" />;
-    if (lowerUrl.includes('twitch')) return <Twitch className="h-8 w-8 text-white" />;
-    return null;
-};
 
-export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: LinkWidgetProps) => {
+
+export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = false }: LinkWidgetProps) => {
     const [loading, setLoading] = useState(false);
     const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isEditOpen, setIsEditOpen] = useState(false);
 
-    // Local edit state for inline adding (first time URL input)
-    const [editUrl, setEditUrl] = useState("");
+
 
     // Drag detection state
     const [isDragging, setIsDragging] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+    const editButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (data.url && !metadata && !loading && !error) {
@@ -79,12 +66,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
         }
     }, []);
 
-    const handleSaveEdit = (updates: Partial<WidgetData>) => {
-        onUpdate(data.id, updates);
-        if (updates.url && updates.url !== data.url) {
-            setMetadata(null); // Trigger reload
-        }
-    };
+
 
     const resizeWidget = (newSize: "1x1" | "2x1" | "2x2" | "1x2") => {
         onUpdate(data.id, { size: newSize });
@@ -125,48 +107,44 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
     // If no URL is set, show Input State (Empty Widget)
     if (!data.url) {
         return (
-            <div className={cn("bento-card group relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 hover:border-gray-300 bg-gray-50/50 transition-all duration-300", spanClass)}>
+            <div
+                className={cn(
+                    "bento-card group relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 hover:border-gray-300 bg-gray-50/50 transition-all duration-300",
+                    spanClass,
+                    isEditable && "cursor-pointer hover:bg-gray-100/50"
+                )}
+                onClick={(e) => {
+                    if (isEditable) {
+                        onEdit(data, { current: e.currentTarget });
+                    }
+                }}
+            >
                 <div className="w-full max-w-xs space-y-5 text-center">
                     <div className="mx-auto h-14 w-14 bg-white text-purple-600 rounded-xl flex items-center justify-center mb-1 shadow-sm ring-1 ring-black/5">
                         <LinkIcon className="h-7 w-7" />
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-800 text-lg">Add a Link</h3>
-                        <p className="text-sm text-gray-500 font-medium">Paste a URL to create a card</p>
+                        <p className="text-sm text-gray-500 font-medium">Click to create a card</p>
                     </div>
                     {isEditable && (
-                        <>
-                            <div className="relative">
-                                <Input
-                                    placeholder="brolink.me/inspirations"
-                                    className="h-12 pl-11 bg-white border-gray-200 focus:bg-white focus:ring-4 focus:ring-purple-500/10 transition-all rounded-xl font-medium placeholder:text-gray-400"
-                                    value={editUrl}
-                                    onChange={(e) => setEditUrl(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && editUrl) {
-                                            onUpdate(data.id, { url: editUrl });
-                                        }
-                                    }}
-                                />
-                                <LinkIcon className="absolute left-4 top-4 h-4 w-4 text-gray-500" />
-                            </div>
-                            <div className="flex justify-center gap-2">
-                                <button onClick={(e) => { e.stopPropagation(); setEditUrl('https://github.com/'); }} className="text-xs px-4 py-2 bg-white hover:bg-gray-50 hover:shadow-sm border border-gray-200 rounded-xl text-gray-600 font-semibold transition-all">Github</button>
-                                <button onClick={(e) => { e.stopPropagation(); setEditUrl('https://youtube.com/'); }} className="text-xs px-4 py-2 bg-white hover:bg-gray-50 hover:shadow-sm border border-gray-200 rounded-xl text-gray-600 font-semibold transition-all">YouTube</button>
-                            </div>
-                            <div className="absolute top-4 right-4">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-400 transition-all"
-                                    onClick={() => onRemove(data.id, data.customImage)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </>
+                        <div className="absolute top-4 right-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-400 transition-all"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRemove(data.id, data.customImage);
+                                }}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
                     )}
                 </div>
+
+
             </div>
         );
     }
@@ -251,20 +229,12 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                                 {/* Content area - takes available space */}
                                 <div className={cn(
                                     "flex-1 flex flex-col",
-                                    (!((data.customImage || metadata?.image))) ? "items-center justify-center" : "justify-end items-start mb-2"
+                                    "justify-end items-start mb-2"
                                 )}>
-                                    {(!((data.customImage || metadata?.image))) ? (
-                                        <div className="h-14 w-14 rounded-xl bg-white flex items-center justify-center shadow-lg ring-1 ring-black/5 group-hover:scale-110 transition-transform duration-300">
-                                            {getSocialIcon(data.url) || (metadata?.favicon ? (
-                                                <img src={metadata.favicon} alt="" className="h-8 w-8 object-contain drop-shadow-sm" />
-                                            ) : (
-                                                <LinkIcon className="h-6 w-6 text-black" />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        // Show title when there's an image
+                                    {/* Show title when available */}
+                                    {(data.customTitle || metadata?.title) && (
                                         <h3 className="font-bold leading-[1.05] text-white drop-shadow-lg text-2xl line-clamp-2 tracking-tight text-left">
-                                            {data.customTitle || metadata?.title || ""}
+                                            {data.customTitle || metadata?.title}
                                         </h3>
                                     )}
                                 </div>
@@ -331,7 +301,12 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                     >
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md border border-white/20 shadow-sm transition-colors ring-1 ring-white/10">
+                                <Button
+                                    ref={editButtonRef}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-md border border-white/20 shadow-sm transition-colors ring-1 ring-white/10"
+                                >
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -355,7 +330,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                                     </div>
                                 </div>
                                 <DropdownMenuSeparator className="bg-gray-100/50 my-1" />
-                                <DropdownMenuItem onClick={() => setIsEditOpen(true)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-50 focus:text-gray-900 text-gray-600 font-medium transition-colors">
+                                <DropdownMenuItem onClick={() => onEdit(data, editButtonRef)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-50 focus:text-gray-900 text-gray-600 font-medium transition-colors">
                                     <Pencil className="mr-2.5 h-4 w-4 text-gray-400" /> Edit Content
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => onRemove(data.id, data.customImage)} className="rounded-xl cursor-pointer py-2.5 px-3 text-red-500 focus:text-red-600 focus:bg-red-50 font-medium transition-colors">
@@ -373,14 +348,6 @@ export const LinkWidget = ({ data, onUpdate, onRemove, isEditable = false }: Lin
                     </div>
                 </div>
             </div>
-
-            {/* Reusable Widget Editor Modal */}
-            <WidgetEditorModal
-                isOpen={isEditOpen}
-                onClose={() => setIsEditOpen(false)}
-                onSave={handleSaveEdit}
-                initialData={data}
-            />
         </>
     );
 };

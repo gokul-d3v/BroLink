@@ -21,7 +21,7 @@ interface WidgetEditorModalProps {
     buttonRef?: React.RefObject<HTMLButtonElement | null>; // Reference to the Add Widget button for genie effect
 }
 
-export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, buttonRef }: WidgetEditorModalProps) => {
+export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, buttonRef, title }: WidgetEditorModalProps) => {
     // Local edit states
     const [editTitle, setEditTitle] = useState("");
     const [editUrl, setEditUrl] = useState("");
@@ -282,7 +282,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                             <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-white/10 sticky top-0 z-10">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Add New Widget</h2>
+                                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{title || "Add New Widget"}</h2>
                                     </div>
                                     <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                                         <X className="h-5 w-5" />

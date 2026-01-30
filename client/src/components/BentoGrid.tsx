@@ -60,10 +60,9 @@ const withWidth = (WrappedComponent: any) => {
     };
 };
 
-const ResponsiveGridLayout = withWidth(Responsive);
+import { generateId } from "../lib/utils";
 
-// Simple ID generator
-const generateId = () => Math.random().toString(36).substr(2, 9);
+const ResponsiveGridLayout = withWidth(Responsive);
 
 interface BentoGridProps {
     isEditable: boolean;
@@ -196,6 +195,9 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const addWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
+    // State for Edit Widget Modal
+    const [activeWidget, setActiveWidget] = useState<{ data: WidgetData, buttonRef: { current: HTMLElement | null } } | null>(null);
+
     const handleCreateWidget = (data: Partial<WidgetData>) => {
         const id = generateId();
         const newWidget: WidgetData = {
@@ -252,35 +254,47 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
     }, []);
 
     const updateWidget = useCallback((id: string, updates: Partial<WidgetData>) => {
-        setWidgets(prevWidgets => {
-            return prevWidgets.map(w => w.id === id ? { ...w, ...updates } : w);
-        });
-
-        // If size changed, we update the layout for that item
-        if (updates.size) {
-            setLayouts((prev: any) => {
-                const newLayouts: any = { ...prev };
-
-                Object.keys(newLayouts).forEach(key => {
-                    if (!newLayouts[key]) return;
-
-                    newLayouts[key] = newLayouts[key].map((l: any) => {
-                        if (l.i === id) {
-                            let w = 1; let h = 1;
-                            if (updates.size === "2x1") { w = 2; h = 1; }
-                            if (updates.size === "1x2") { w = 1; h = 2; }
-                            if (updates.size === "2x2") { w = 2; h = 2; }
-                            if (updates.size === "1x1") { w = 1; h = 1; }
-                            return { ...l, w, h };
-                        }
-                        return l;
-                    });
-                });
-
-                return newLayouts;
-            });
-        }
+        setWidgets((prev: WidgetData[]) => prev.map((w: WidgetData) =>
+            w.id === id ? { ...w, ...updates } : w
+        ));
     }, []);
+
+    const handleEditWidget = useCallback((data: WidgetData, buttonRef: { current: HTMLElement | null }) => {
+        setActiveWidget({ data, buttonRef });
+    }, []);
+
+    const handleSaveEdit = (updates: Partial<WidgetData>) => {
+        if (activeWidget) {
+            updateWidget(activeWidget.data.id, updates);
+
+            // If size changed, we update the layout for that item
+            if (updates.size) {
+                setLayouts((prev: any) => {
+                    const newLayouts: any = { ...prev };
+
+                    Object.keys(newLayouts).forEach(key => {
+                        if (!newLayouts[key]) return;
+
+                        newLayouts[key] = newLayouts[key].map((l: any) => {
+                            if (l.i === activeWidget.data.id) {
+                                let w = 1; let h = 1;
+                                if (updates.size === "2x1") { w = 2; h = 1; }
+                                if (updates.size === "1x2") { w = 1; h = 2; }
+                                if (updates.size === "2x2") { w = 2; h = 2; }
+                                if (updates.size === "1x1") { w = 1; h = 1; }
+                                return { ...l, w, h };
+                            }
+                            return l;
+                        });
+                    });
+
+                    return newLayouts;
+                });
+            }
+
+            setActiveWidget(null);
+        }
+    };
 
 
     // Handle layout changes
@@ -400,6 +414,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                                             data={widget}
                                             onUpdate={updateWidget}
                                             onRemove={removeWidget}
+                                            onEdit={handleEditWidget}
                                             isEditable={isEditable}
                                         />
                                     </div>
@@ -437,6 +452,18 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 buttonRef={addWidgetButtonRef}
                 title="Add New Widget"
             />
+
+            {/* Edit Widget Modal (Shared) */}
+            {activeWidget && (
+                <WidgetEditorModal
+                    isOpen={!!activeWidget}
+                    onClose={() => setActiveWidget(null)}
+                    onSave={handleSaveEdit}
+                    initialData={activeWidget.data}
+                    buttonRef={activeWidget.buttonRef as any}
+                    title="Edit Widget"
+                />
+            )}
         </div>
     );
 };
