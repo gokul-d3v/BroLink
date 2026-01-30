@@ -5,6 +5,7 @@ import { LinkWidget, type WidgetData } from "./LinkWidget";
 import api from "../lib/api";
 
 import { WidgetEditorModal } from "./WidgetEditorModal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 // @ts-ignore
 import * as ReactGridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -96,6 +97,7 @@ interface BentoGridProps {
 
 export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
     const [widgets, setWidgets] = useState<WidgetData[]>([]);
+    const [widgetToDelete, setWidgetToDelete] = useState<{ id: string, imageUrl?: string } | null>(null);
     const [layouts, setLayouts] = useState<any>({ lg: [] });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -267,13 +269,20 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         setIsAddModalOpen(true);
     }, []);
 
-    const removeWidget = useCallback(async (id: string, imageUrl?: string) => {
+    const removeWidget = useCallback((id: string, imageUrl?: string) => {
+        setWidgetToDelete({ id, imageUrl });
+    }, []);
+
+    const confirmDeleteWidget = useCallback(async () => {
+        if (!widgetToDelete) return;
+
+        const { id, imageUrl } = widgetToDelete;
+
         if (imageUrl) {
             try {
                 await api.post('/upload/delete', { url: imageUrl });
             } catch (error) {
                 console.error("Failed to delete image from Cloudinary:", error);
-                // We typically proceed with removing the widget even if image delete fails
             }
         }
         setWidgets(prev => prev.filter(w => w.id !== id));
@@ -288,7 +297,9 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             });
             return newLayouts;
         });
-    }, []);
+
+        setWidgetToDelete(null);
+    }, [widgetToDelete]);
 
     const updateWidget = useCallback((id: string, updates: Partial<WidgetData>) => {
         setWidgets((prev: WidgetData[]) => prev.map((w: WidgetData) =>
@@ -484,7 +495,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mb-8">
                                 {isEditable
-                                    ? "Start building your Bento grid by adding your first widget."
+                                    ? "Start building your Brototype grid by adding your first widget."
                                     : "This page doesn't have any widgets yet."}
                             </p>
                             {isEditable && (
@@ -575,6 +586,32 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                     title="Edit Widget"
                 />
             )}
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={!!widgetToDelete} onOpenChange={(open) => !open && setWidgetToDelete(null)}>
+                <DialogContent className="sm:max-w-[400px] p-6 rounded-3xl border-none shadow-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-xl font-bold tracking-tight text-center">Delete Widget?</DialogTitle>
+                        <DialogDescription className="text-center text-gray-500 dark:text-gray-400 mt-2">
+                            This action cannot be undone. This will permanently delete the widget from your grid.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-3 justify-center sm:justify-center w-full">
+                        <button
+                            onClick={() => setWidgetToDelete(null)}
+                            className="flex-1 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all focus-visible:outline-none disabled:opacity-50 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 h-11 px-4 shadow-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={confirmDeleteWidget}
+                            className="flex-1 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all focus-visible:outline-none disabled:opacity-50 bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 h-11 px-4"
+                        >
+                            Delete
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

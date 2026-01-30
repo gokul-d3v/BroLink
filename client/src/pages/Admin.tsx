@@ -83,7 +83,7 @@ export const Admin = () => {
                 className={`fixed top-4 left-4 sm:top-6 sm:left-6 z-[200] transition-opacity duration-300 ${isScrolled ? 'opacity-0' : 'opacity-100'
                     }`}
             >
-                <h1 className="text-2xl font-bold tracking-tight">BroLink</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Brototype</h1>
             </div>
 
             <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[200] flex gap-2 sm:gap-3">
