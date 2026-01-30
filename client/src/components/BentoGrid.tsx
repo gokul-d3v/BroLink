@@ -549,7 +549,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 </div>
             </div>
             {/* Floating Add Button */}
-            {isEditable && !isAddModalOpen && (
+            {isEditable && !isAddModalOpen && !activeWidget && (
                 <motion.button
                     ref={addWidgetButtonRef}
                     onClick={addWidget}
