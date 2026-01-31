@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
-import { Loader2, ArrowRight, Move, Globe, Eye, EyeOff } from "lucide-react";
+import { Loader2, Command, Sun, Plus } from "lucide-react";
 import { toast } from "sonner";
 // @ts-ignore
 import * as ReactGridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-// import { cn } from "../lib/utils"; // Unused import
 
 const RGL = ReactGridLayout as any;
 const Responsive = RGL.Responsive || RGL.ResponsiveGridLayout;
@@ -35,13 +34,22 @@ const withWidth = (WrappedComponent: any) => {
 
 const ResponsiveGridLayout = withWidth(Responsive);
 
-// 3 Column Layout
-const DEFAULT_LAYOUT = [
-    { i: "welcome", x: 0, y: 0, w: 2, h: 2 },
-    { i: "email", x: 2, y: 0, w: 1, h: 1 },
-    { i: "password", x: 2, y: 1, w: 1, h: 1 },
-    { i: "enter", x: 0, y: 2, w: 2, h: 1 },
-    { i: "quick", x: 2, y: 2, w: 1, h: 1 },
+// WIREFRAME LAYOUT (Balanced 2x4 Left, 2x4 Right)
+// Left area: Time (2x1), Quick (2x1), Socials (2x2) -> Total Height 4
+// Right area: Login (2x4) -> Total Height 4
+const LG_LAYOUT = [
+    { i: "time", x: 0, y: 0, w: 2, h: 1 },
+    { i: "quick", x: 0, y: 1, w: 2, h: 1 },
+    { i: "socials", x: 0, y: 2, w: 2, h: 2 },
+    { i: "login", x: 2, y: 0, w: 2, h: 4 },
+];
+
+// Fallback for Tablet (Stacked)
+const MD_LAYOUT = [
+    { i: "time", x: 0, y: 0, w: 1, h: 1 },
+    { i: "quick", x: 1, y: 0, w: 1, h: 1 },
+    { i: "socials", x: 0, y: 1, w: 2, h: 1 },
+    { i: "login", x: 2, y: 0, w: 1, h: 4 },
 ];
 
 export const AdminLogin = () => {
@@ -49,13 +57,22 @@ export const AdminLogin = () => {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [layouts, setLayouts] = useState<any>(() => {
-        const saved = localStorage.getItem("neo-bento-layout");
-        return saved ? JSON.parse(saved) : { lg: DEFAULT_LAYOUT };
-    });
 
+    // Realtime Clock State
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Kept state in case we want to add live data back elsewhere, but removed from display for now
+    const [events, setEvents] = useState<any[]>([]);
+
+    const [layouts, setLayouts] = useState<any>({ lg: LG_LAYOUT, md: MD_LAYOUT });
     const navigate = useNavigate();
-
     const [isDraggable, setIsDraggable] = useState(() => window.innerWidth >= 768);
 
     useEffect(() => {
@@ -65,16 +82,6 @@ export const AdminLogin = () => {
         handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Migration: Fix layout if using old version (Email h=2)
-    useEffect(() => {
-        const currentLg = layouts.lg || [];
-        const emailWidget = currentLg.find((w: any) => w.i === 'email');
-        if (emailWidget && emailWidget.h === 2) {
-            setLayouts({ lg: DEFAULT_LAYOUT });
-            localStorage.setItem("neo-bento-layout", JSON.stringify({ lg: DEFAULT_LAYOUT }));
-        }
     }, []);
 
     // Check if user is already logged in
@@ -92,6 +99,28 @@ export const AdminLogin = () => {
         };
         checkAuth();
     }, [navigate]);
+
+    // Data Fetching (Kept minimal in background for now)
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const eventsRes = await fetch('https://api.github.com/events?per_page=30');
+                if (eventsRes.ok) {
+                    const eventsData = await eventsRes.json();
+                    const pushEvents = eventsData
+                        .filter((e: any) => e.type === 'PushEvent' && e.payload.commits && e.payload.commits.length > 0)
+                        .slice(0, 1);
+                    if (pushEvents.length > 0) setEvents(pushEvents);
+                }
+            } catch (error) {
+                console.error("Failed to fetch data", error);
+            }
+        };
+
+        fetchData();
+        const interval = setInterval(fetchData, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleLogin = async () => {
         if (!email || !password) return toast.error("Please fill in all fields");
@@ -111,172 +140,182 @@ export const AdminLogin = () => {
         }
     };
 
-    const onLayoutChange = (_: any, allLayouts: any) => {
-        setLayouts(allLayouts);
-        localStorage.setItem("neo-bento-layout", JSON.stringify(allLayouts));
-    };
+    // Shared border style
+    const cardStyle = "bg-white border-2 border-zinc-950 rounded-[32px] overflow-hidden relative group hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300";
 
-    const renderWidgets = (isMobile: boolean) => [
-        /* Welcome Widget */
-        <div key="welcome" className={`${isMobile ? 'w-full mb-4' : 'relative group overflow-hidden'}`}>
-            <div className={`h-full w-full bg-[#EBF58A] rounded-[32px] p-8 sm:p-10 flex flex-col justify-between text-zinc-900 ${isMobile ? 'min-h-[200px]' : ''}`}>
-                <div className="drag-handle absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-zinc-400 hidden md:block">
-                    <div className="grid grid-cols-2 gap-1">
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                    </div>
+    const renderWidgets = () => [
+        /* Time Widget */
+        <div key="time" className={`${cardStyle} flex flex-col justify-center px-10 py-8`}>
+            <div className="flex justify-between items-center h-full">
+                <div className="flex flex-col justify-center">
+                    <h2 className="text-5xl font-bold text-zinc-950 tracking-tight tabular-nums flex items-end">
+                        {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })}
+                        <span className="text-3xl font-bold text-zinc-300 mb-1 ml-1">:</span>
+                        <span className="text-3xl font-bold text-zinc-400 mb-1">
+                            {currentTime.toLocaleTimeString([], { second: '2-digit', timeZone: 'Asia/Kolkata' }).slice(0, 2)}
+                        </span>
+                        <span className="text-lg font-medium text-zinc-400 mb-2.5 ml-2">
+                            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }).split(' ')[1]}
+                        </span>
+                    </h2>
                 </div>
-                <div className="max-w-md">
-                    <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[0.95] mb-6">
-                        Welcome Back to the Workspace.
-                    </h1>
-                    <p className="text-zinc-700 font-medium text-lg leading-relaxed max-w-sm">
-                        Drag and drop your way into your creative environment. Your blocks are right where you left them.
-                    </p>
+                <div className="flex items-center gap-4 text-right">
+                    <div>
+                        <p className="text-zinc-950 font-bold text-lg">Kochi, Kerala</p>
+                        <p className="text-zinc-400 text-xs font-bold tracking-widest uppercase">IST • GMT+5:30</p>
+                    </div>
+                    <Sun className="h-10 w-10 text-zinc-950 fill-zinc-950" />
                 </div>
             </div>
         </div>,
 
-        /* Email Widget */
-        <div key="email" className={`${isMobile ? 'w-full mb-4' : 'relative group'}`}>
-            <div className={`h-full w-full bg-[#9ACBE8] rounded-[32px] p-8 flex flex-col text-zinc-900 ${isMobile ? 'min-h-[160px]' : ''}`}>
-                <div className="drag-handle absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-zinc-600 hidden md:block">
-                    <div className="grid grid-cols-2 gap-1">
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
+        /* Quick Action Widget */
+        <div key="quick" className={`${cardStyle} flex flex-col justify-center px-10 py-8`}>
+            <div className="flex items-center justify-between h-full">
+                <div className="flex items-center gap-6">
+                    <div className="h-16 w-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-950">
+                        <Command className="h-8 w-8" />
+                    </div>
+                    <div>
+                        <p className="text-zinc-950 font-bold text-xl">Quick Actions</p>
+                        <p className="text-xs font-bold tracking-widest uppercase text-zinc-400 mt-1">Ready to deploy</p>
                     </div>
                 </div>
-                <label className="text-xs font-bold tracking-widest uppercase mb-4 opacity-70">
-                    Email Address
-                </label>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder=""
-                    className="w-full h-14 bg-white/50 backdrop-blur-sm rounded-xl px-4 font-medium text-lg placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10 transition-all mb-auto relative z-20"
-                />
+                <p className="font-bold text-zinc-950 text-base flex items-center gap-2 bg-zinc-100 px-4 py-2 rounded-lg border border-zinc-200">
+                    <Command className="h-4 w-4" /> + K
+                </p>
             </div>
         </div>,
 
-        /* Password Widget */
-        <div key="password" className={`${isMobile ? 'w-full mb-4' : 'relative group'}`}>
-            <div className={`h-full w-full bg-[#A0E8AF] rounded-[32px] p-8 flex flex-col text-zinc-900 ${isMobile ? 'min-h-[160px]' : ''}`}>
-                <div className="flex justify-between items-center mb-4">
-                    <label className="text-xs font-bold tracking-widest uppercase opacity-70">
-                        Password
+        /* Socials Container (Grid of 4 large rectangular cards) */
+        <div key="socials" className="grid grid-cols-2 gap-6 h-full">
+            {/* Google */}
+            <div className="bg-white border-2 border-zinc-950 rounded-[32px] flex items-center justify-between px-8 cursor-pointer hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300">
+                <div className="flex items-center gap-4">
+                    <svg className="h-8 w-8" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#000" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#000" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#000" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#000" /></svg>
+                    <span className="font-bold text-zinc-950 text-lg">Google</span>
+                </div>
+            </div>
+            {/* Github */}
+            <div className="bg-white border-2 border-zinc-950 rounded-[32px] flex items-center justify-between px-8 cursor-pointer hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300">
+                <div className="flex items-center gap-4">
+                    <svg className="h-8 w-8 text-zinc-950" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                    <span className="font-bold text-zinc-950 text-lg">Github</span>
+                </div>
+            </div>
+            {/* Twitter/X */}
+            <div className="bg-white border-2 border-zinc-950 rounded-[32px] flex items-center justify-between px-8 cursor-pointer hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-300">
+                <div className="flex items-center gap-4">
+                    <svg className="h-7 w-7 text-zinc-950" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                    <span className="font-bold text-zinc-950 text-lg">Twitter</span>
+                </div>
+            </div>
+            {/* Add */}
+            <div className="bg-white border-2 border-dashed border-zinc-300 rounded-[32px] flex items-center justify-center cursor-pointer hover:border-zinc-400 hover:bg-zinc-50 transition-all duration-300">
+                <Plus className="h-10 w-10 text-zinc-300" />
+            </div>
+        </div>,
+
+        /* Login Widget (Right Side - Tall) */
+        <div key="login" className={`${cardStyle} p-12 sm:p-20 flex flex-col justify-center`}>
+            <div className="mb-12">
+                <h1 className="text-5xl font-bold tracking-tight text-zinc-950 mb-4">Welcome back</h1>
+                <p className="text-zinc-500 font-medium text-xl leading-relaxed max-w-lg">
+                    Sign in to your dashboard to continue building your next big thing.
+                </p>
+            </div>
+
+            <div className="space-y-10 max-w-md">
+                <div className="space-y-3">
+                    <label className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-400 block mb-1">
+                        Email Address
                     </label>
-                </div>
-                <div className="relative mb-auto">
                     <input
-                        type={showPassword ? "text" : "password"}
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        placeholder="name@company.com"
+                        className="no-drag w-full py-3 bg-transparent border-b-2 border-zinc-100 font-medium text-xl text-zinc-950 placeholder:text-zinc-200 focus:outline-none focus:border-zinc-950 transition-all rounded-none"
+                    />
+                </div>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-baseline mb-1">
+                        <label className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-400 block">
+                            Password
+                        </label>
+                        <button
+                            type="button"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            className="text-[10px] font-bold tracking-widest uppercase text-zinc-400 hover:text-zinc-950 transition-colors"
+                        >
+                            Forgot?
+                        </button>
+                    </div>
+                    <input
+                        type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder=""
-                        className="w-full h-14 bg-white/50 backdrop-blur-sm rounded-xl px-4 font-medium text-lg placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-black/10 transition-all pr-10 relative z-20"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        placeholder="••••••••"
+                        className="no-drag w-full py-3 bg-transparent border-b-2 border-zinc-100 font-medium text-xl text-zinc-950 placeholder:text-zinc-200 focus:outline-none focus:border-zinc-950 transition-all rounded-none tracking-widest"
                     />
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 transition-colors p-1 z-30"
-                    >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
                 </div>
+
+                <button
+                    onClick={handleLogin}
+                    disabled={isLoading}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="no-drag w-full h-20 bg-black text-white rounded-2xl flex items-center justify-center font-bold tracking-wider hover:bg-zinc-800 active:scale-[0.98] transition-all mt-6 text-base shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]"
+                >
+                    {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        "SIGN IN"
+                    )}
+                </button>
             </div>
-        </div>,
 
-        /* Enter Widget */
-        <div key="enter" className={`${isMobile ? 'w-full mb-4' : 'relative group'}`}>
-            <button
-                onClick={handleLogin}
-                disabled={isLoading}
-                className={`h-full w-full bg-[#6200EE] rounded-[32px] flex items-center justify-center relative hover:scale-[1.02] active:scale-[0.98] transition-all group-hover:shadow-[0_0_40px_-10px_rgba(98,0,238,0.5)] ${isMobile ? 'min-h-[160px]' : ''}`}
-            >
-                <div className="drag-handle absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-white/50 z-20 hidden md:block">
-                    <Move className="h-5 w-5" />
-                </div>
+            <div className="mt-16">
+                <p className="text-base font-medium text-zinc-400">
+                    New here? <button className="font-bold text-zinc-950 hover:underline">Create an account</button>
+                </p>
+            </div>
 
-                {isLoading ? (
-                    <Loader2 className="h-8 w-8 text-white animate-spin" />
-                ) : (
-                    <div className="flex items-center gap-3 text-white">
-                        <span className="font-bold tracking-widest text-lg">ENTER</span>
-                        <ArrowRight className="h-6 w-6" strokeWidth={3} />
-                    </div>
-                )}
-            </button>
-        </div>,
-
-        /* Quick Connect Widget */
-        <div key="quick" className={`${isMobile ? 'w-full mb-4' : 'relative group'}`}>
-            <div className={`h-full w-full bg-[#FFBCB7] rounded-[32px] p-6 sm:p-8 flex flex-col justify-center text-zinc-900 ${isMobile ? 'min-h-[160px]' : ''}`}>
-                <div className="drag-handle absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing text-zinc-600 hidden md:block">
-                    <div className="grid grid-cols-2 gap-1">
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                        <div className="w-1 h-1 bg-current rounded-full"></div>
-                    </div>
-                </div>
-                <label className="text-xs font-bold tracking-widest uppercase mb-3 opacity-70">
-                    Quick Connect
-                </label>
-                <div className="flex gap-3">
-                    <button className="h-12 flex-1 bg-white hover:bg-white/90 transition-colors rounded-xl flex items-center justify-center group/btn shadow-sm">
-                        <Globe className="h-6 w-6 text-blue-500 group-hover/btn:scale-110 transition-transform" />
-                    </button>
-                    <button className="h-12 w-16 bg-[#25D366] hover:bg-[#20bd5a] transition-colors rounded-xl flex items-center justify-center text-white group/btn shadow-sm">
-                        <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white group-hover/btn:scale-110 transition-transform" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                        </svg>
-                    </button>
-                </div>
+            <div className="mt-auto pt-16 flex gap-8 text-[11px] font-bold tracking-widest uppercase text-zinc-300">
+                <a href="#" className="hover:text-zinc-950 transition-colors">Security</a>
+                <a href="#" className="hover:text-zinc-950 transition-colors">Privacy</a>
+                <a href="#" className="hover:text-zinc-950 transition-colors">Terms</a>
             </div>
         </div>
     ];
 
     return (
-        <div className="min-h-screen w-full bg-[#fbfbfd] text-gray-900 flex flex-col selection:bg-purple-500/30">
-            {/* Header */}
-            <header className="w-full max-w-7xl mx-auto px-6 py-8 flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Brototype</h1>
-            </header>
+        <div className="min-h-screen w-full bg-white text-zinc-950 flex flex-col relative overflow-hidden">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-40 pointer-events-none"></div>
 
-            {/* Main Content */}
-            <main className="flex-1 flex items-center justify-center p-4">
-                <div className="w-full max-w-5xl">
-                    {!isDraggable ? (
-                        <div className="flex flex-col gap-4 max-w-[500px] mx-auto pb-10">
-                            {renderWidgets(true)}
-                        </div>
-                    ) : (
-                        <ResponsiveGridLayout
-                            className="layout"
-                            layouts={layouts}
-                            onLayoutChange={onLayoutChange}
-                            breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 480, xxs: 0 }}
-                            cols={{ lg: 3, md: 3, sm: 2, xs: 1, xxs: 1 }}
-                            rowHeight={160}
-                            margin={[20, 20]}
-                            isResizable={false}
-                            isDraggable={isDraggable}
-                            draggableHandle=".drag-handle"
-                            draggableCancel=".no-drag"
-                        >
-                            {renderWidgets(false)}
-                        </ResponsiveGridLayout>
-                    )}
+            {/* Main Content Centered */}
+            <main className="flex-1 flex items-center justify-center p-6 z-10">
+                <div className="w-full max-w-[1400px]">
+                    <ResponsiveGridLayout
+                        className="layout"
+                        layouts={layouts}
+                        breakpoints={{ lg: 1024, md: 768, sm: 640, xs: 480, xxs: 0 }}
+                        cols={{ lg: 4, md: 3, sm: 1, xs: 1, xxs: 1 }}
+                        rowHeight={160}
+                        margin={[24, 24]}
+                        isResizable={false}
+                        isDraggable={isDraggable}
+                        draggableHandle=".group"
+                        draggableCancel=".no-drag"
+                    >
+                        {renderWidgets()}
+                    </ResponsiveGridLayout>
                 </div>
             </main>
         </div>
