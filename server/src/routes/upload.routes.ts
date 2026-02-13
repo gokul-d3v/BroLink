@@ -7,6 +7,8 @@ import path from 'path';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+import { authMiddleware } from '../middleware/auth.middleware';
+
 const router = express.Router();
 
 // Configure Cloudinary
@@ -29,7 +31,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage: storage });
 
 // Single file upload route
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', authMiddleware, upload.single('file'), (req: any, res: any) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
     }
@@ -45,7 +47,7 @@ router.post('/', upload.single('file'), (req, res) => {
 });
 
 // Delete file route
-router.post('/delete', async (req, res) => {
+router.post('/delete', authMiddleware, async (req: any, res: any) => {
     const { url } = req.body;
     if (!url) {
         return res.status(400).json({ message: 'No URL provided' });

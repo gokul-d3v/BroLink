@@ -497,7 +497,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mb-8">
                                 {isEditable
-                                    ? "Start building your Brototype grid by adding your first widget."
+                                    ? "Start building your BROTOTYPE grid by adding your first widget."
                                     : "This page doesn't have any widgets yet."}
                             </p>
                             {isEditable && (
@@ -590,7 +590,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             )}
 
             {/* Delete Confirmation Modal */}
-            <Dialog open={!!widgetToDelete} onOpenChange={(open) => !open && setWidgetToDelete(null)}>
+            <Dialog open={!!widgetToDelete} onOpenChange={(open: boolean) => !open && setWidgetToDelete(null)}>
                 <DialogContent className="sm:max-w-[400px] p-6 rounded-3xl border-none shadow-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
                     <DialogHeader className="mb-4">
                         <DialogTitle className="text-xl font-bold tracking-tight text-center">Delete Widget?</DialogTitle>
