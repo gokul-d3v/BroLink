@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
     origin: [
         'https://bro-link.vercel.app',
+        'https://bro-link-rho.vercel.app',
         'http://localhost:5173',
         'https://bro-link-l1836hffu-brototype-marketings-projects.vercel.app',
         process.env.CLIENT_URL || ''
