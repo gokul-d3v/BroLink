@@ -174,7 +174,7 @@ export const AdminLogin = () => {
                     <ResponsiveGridLayout
                         className="layout w-full"
                         layouts={layouts}
-                        onLayoutChange={(layout: any, layouts: any) => setLayouts(layouts)}
+                        onLayoutChange={(_layout: any, layouts: any) => setLayouts(layouts)}
                         breakpoints={{ lg: 600 }}
                         cols={{ lg: 2 }}
                         rowHeight={120}

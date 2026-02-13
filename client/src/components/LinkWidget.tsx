@@ -105,9 +105,6 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
         "3x1": "col-span-1 md:col-span-3 row-span-1",
     }[data.size];
 
-
-    // Dynamic title size based on widget size
-    const titleSizeClass = data.size === "1x1" ? "text-lg" : "text-xl md:text-2xl";
     // If no URL is set, show Input State (Empty Widget)
     if (!data.url) {
         return (
