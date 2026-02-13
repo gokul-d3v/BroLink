@@ -1,10 +1,8 @@
-import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 export const Public = () => {
-    const { username = "marketing" } = useParams();
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
@@ -32,7 +30,7 @@ export const Public = () => {
                 <ThemeToggle />
             </div>
 
-            <BentoGrid isEditable={false} publicUsername={username} />
+            <BentoGrid isEditable={false} publicUsername="marketing" />
         </div>
     );
 };
