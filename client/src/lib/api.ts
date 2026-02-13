@@ -8,7 +8,7 @@ const getBaseUrl = () => {
 
     // 2. If running on Vercel (or any non-local domain), FORCE the production backend.
     // This ignores any incorrect VITE_API_URL that might have leaked into the build.
-    return 'https://brolink-2.onrender.com/api';
+    return 'https://brolink-nmny.onrender.com/api';
 };
 
 const baseUrl = getBaseUrl();
