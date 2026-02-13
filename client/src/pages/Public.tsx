@@ -4,7 +4,7 @@ import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 export const Public = () => {
-    const { username = "brototype" } = useParams();
+    const { username = "marketing" } = useParams();
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
