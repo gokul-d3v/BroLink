@@ -242,25 +242,38 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
         // Explicitly add to layout to prevent alignment issues
         setLayouts((prev: any) => {
-            const currentLayout = prev.lg || [];
+            const newLayouts: any = { ...prev };
 
-            // Smart Placement: Find first available spot
-            const { x, y } = findNextAvailablePosition(currentLayout, 4);
+            // Define columns for each breakpoint
+            const cols: { [key: string]: number } = { lg: 4, md: 2, sm: 2, xs: 1, xxs: 1 };
 
-            const newItem = {
-                i: id,
-                x,
-                y,
-                w: 1,
-                h: 1,
-                minW: 1,
-                minH: 1
-            };
+            // If 'lg' (default) is missing, initialize it
+            if (!newLayouts.lg) newLayouts.lg = [];
 
-            return {
-                ...prev,
-                lg: [...currentLayout, newItem]
-            };
+            // Iterate over all breakpoints in the current layout state, plus ensure 'lg' is covered
+            const allBreakpoints = new Set([...Object.keys(newLayouts), 'lg']);
+
+            allBreakpoints.forEach(bk => {
+                const currentLayout = newLayouts[bk] || [];
+                const currentCols = cols[bk] || 4; // Default to 4 if unknown
+
+                // Smart Placement: Find first available spot for this specific breakpoint
+                const { x, y } = findNextAvailablePosition(currentLayout, currentCols);
+
+                const newItem = {
+                    i: id,
+                    x,
+                    y,
+                    w: 1,
+                    h: 1,
+                    minW: 1,
+                    minH: 1
+                };
+
+                newLayouts[bk] = [...currentLayout, newItem];
+            });
+
+            return newLayouts;
         });
 
         setIsAddModalOpen(false);
@@ -370,74 +383,58 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         }
     };
 
-    const autoArrangeWidgets = useCallback(() => {
-        setLayouts((prev: any) => {
-            const newLayouts: any = { ...prev };
 
-            // Auto-arrange for each breakpoint
-            Object.keys(newLayouts).forEach(breakpoint => {
-                if (!newLayouts[breakpoint]) return;
 
-                const cols = breakpoint === 'lg' || breakpoint === 'md' ? 4 : breakpoint === 'sm' || breakpoint === 'xs' ? 2 : 1;
-                let currentX = 0;
-                let currentY = 0;
 
-                // Sort by original position (y, then x) to maintain relative order
-                const sortedItems = [...newLayouts[breakpoint]].sort((a: any, b: any) => {
-                    if (a.y !== b.y) return a.y - b.y;
-                    return a.x - b.x;
-                });
+    // Helper to compare layouts
+    const areLayoutsEqual = (layout1: any, layout2: any) => {
+        if (!layout1 || !layout2) return false;
+        if (Object.keys(layout1).length !== Object.keys(layout2).length) return false;
 
-                newLayouts[breakpoint] = sortedItems.map((item: any) => {
-                    const width = item.w;
+        for (const key of Object.keys(layout1)) {
+            const l1 = layout1[key];
+            const l2 = layout2[key];
 
-                    // If widget doesn't fit in current row, move to next row
-                    if (currentX + width > cols) {
-                        currentX = 0;
-                        currentY++;
-                    }
+            if (!l1 || !l2) return false;
+            if (l1.length !== l2.length) return false;
 
-                    const newItem = {
-                        ...item,
-                        x: currentX,
-                        y: currentY
-                    };
+            // Sort by id to ensure order doesn't matter
+            const sortedL1 = [...l1].sort((a: any, b: any) => a.i.localeCompare(b.i));
+            const sortedL2 = [...l2].sort((a: any, b: any) => a.i.localeCompare(b.i));
 
-                    currentX += width;
+            for (let i = 0; i < sortedL1.length; i++) {
+                const item1 = sortedL1[i];
+                const item2 = sortedL2[i];
 
-                    // Move to next row if we've filled this one
-                    if (currentX >= cols) {
-                        currentX = 0;
-                        currentY++;
-                    }
-
-                    return newItem;
-                });
-            });
-
-            return newLayouts;
-        });
-    }, []);
-
-    // Auto-arrange widgets whenever the widget list changes
-    useEffect(() => {
-        if (widgets.length > 0 && !isLoading) {
-            // Small delay to ensure layout state is ready
-            const timer = setTimeout(() => {
-                autoArrangeWidgets();
-            }, 100);
-            return () => clearTimeout(timer);
+                if (
+                    item1.i !== item2.i ||
+                    item1.x !== item2.x ||
+                    item1.y !== item2.y ||
+                    item1.w !== item2.w ||
+                    item1.h !== item2.h
+                ) {
+                    return false;
+                }
+            }
         }
-    }, [widgets.length, autoArrangeWidgets, isLoading]);
+        return true;
+    };
 
+    // Use a ref to track the previous layout to avoid infinite loops
+    const layoutsRef = useRef<any>(layouts);
+
+    // Update ref when layouts change
+    useEffect(() => {
+        layoutsRef.current = layouts;
+    }, [layouts]);
 
     // Handle layout changes
     const handleLayoutChange = useCallback((_currentLayout: any, allLayouts: any) => {
         // Prevent infinite loops by checking if the layout actually changed
-        if (JSON.stringify(allLayouts) !== JSON.stringify(layouts)) {
+        if (!areLayoutsEqual(layoutsRef.current, allLayouts)) {
             setLayouts(allLayouts);
         }
-    }, [layouts]);
+    }, []); // Empty dependency array - uses ref instead
 
     // Update 'static' property using useMemo instead of useEffect to avoid render loops
     const derivedLayouts = useMemo(() => {
@@ -522,7 +519,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             layouts={derivedLayouts}
                             onLayoutChange={handleLayoutChange}
                             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                            cols={{ lg: 4, md: 4, sm: 2, xs: 2, xxs: 1 }}
+                            cols={{ lg: 4, md: 2, sm: 2, xs: 1, xxs: 1 }}
                             rowHeight={280}
                             isDraggable={isEditable}
                             isResizable={false}
