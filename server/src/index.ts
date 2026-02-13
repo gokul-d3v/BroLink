@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
     origin: [
+        'https://bro-links.vercel.app',
         'https://bro-links.vercel.app/',
         'http://localhost:5173',
         process.env.CLIENT_URL || ''
