@@ -11,6 +11,9 @@
         "skipLibCheck": true
     },
     "exclude": [
-        "scripts"
+        "scripts",
+        "check_db.ts",
+        "seed.ts",
+        "seed_admin.ts"
     ]
 }
