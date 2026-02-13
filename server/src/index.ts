@@ -19,6 +19,7 @@ app.use(cors({
     origin: [
         'https://bro-links.vercel.app',
         'https://bro-links.vercel.app/',
+        'https://link.brototype.com',
         'http://localhost:5173',
         process.env.CLIENT_URL || ''
     ].filter(Boolean),
