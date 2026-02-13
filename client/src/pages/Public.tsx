@@ -3,6 +3,7 @@ import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 export const Public = () => {
+    // Display marketing admin's widgets on homepage
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
