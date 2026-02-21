@@ -91,6 +91,55 @@ const findNextAvailablePosition = (layout: any[], cols: number = 4): { x: number
     }
 };
 
+const reflowLayout = (layout: any[], cols: number): any[] => {
+    if (!layout || layout.length === 0) return [];
+
+    const sorted = [...layout].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const occupied = new Set<string>();
+
+    const isFree = (x: number, y: number, w: number, h: number) => {
+        for (let ix = x; ix < x + w; ix++) {
+            for (let iy = y; iy < y + h; iy++) {
+                if (occupied.has(`${ix},${iy}`)) return false;
+            }
+        }
+        return true;
+    };
+
+    const occupy = (x: number, y: number, w: number, h: number) => {
+        for (let ix = x; ix < x + w; ix++) {
+            for (let iy = y; iy < y + h; iy++) {
+                occupied.add(`${ix},${iy}`);
+            }
+        }
+    };
+
+    const result: any[] = [];
+    for (const item of sorted) {
+        const w = Math.min(item.w ?? 1, cols);
+        const h = item.h ?? 1;
+        let x = 0;
+        let y = 0;
+
+        while (true) {
+            if (x + w > cols) {
+                x = 0;
+                y++;
+                continue;
+            }
+            if (isFree(x, y, w, h)) {
+                const placed = { ...item, x, y, w, h };
+                result.push(placed);
+                occupy(x, y, w, h);
+                break;
+            }
+            x++;
+        }
+    }
+
+    return result;
+};
+
 interface BentoGridProps {
     isEditable: boolean;
     publicUsername?: string;
@@ -103,6 +152,22 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const isRemoteUpdate = useRef(false);
+
+    const gridBreakpoints = useMemo(() => ({
+        lg: 1200,
+        md: 996,
+        sm: 768,
+        xs: 480,
+        xxs: 0,
+    }), []);
+
+    const gridCols = useMemo(() => ({
+        lg: 4,
+        md: 2,
+        sm: 2,
+        xs: 1,
+        xxs: 1,
+    }), []);
 
     // RE-INSERTING MISSING STATE
     const [userNotFound, setUserNotFound] = useState(false);
@@ -255,7 +320,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
             allBreakpoints.forEach(bk => {
                 const currentLayout = newLayouts[bk] || [];
-                const currentCols = cols[bk] || 4; // Default to 4 if unknown
+                const currentCols = gridCols[bk as keyof typeof gridCols] || 4; // Default to 4 if unknown
 
                 // Smart Placement: Find first available spot for this specific breakpoint
                 const { x, y } = findNextAvailablePosition(currentLayout, currentCols);
@@ -306,7 +371,9 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
             const newLayouts: any = { ...prev };
             Object.keys(newLayouts).forEach(breakpoint => {
                 if (newLayouts[breakpoint]) {
-                    newLayouts[breakpoint] = newLayouts[breakpoint].filter((item: any) => item.i !== id);
+                    const filtered = newLayouts[breakpoint].filter((item: any) => item.i !== id);
+                    const cols = gridCols[breakpoint as keyof typeof gridCols] ?? 4;
+                    newLayouts[breakpoint] = reflowLayout(filtered, cols);
                 }
             });
             return newLayouts;
@@ -314,7 +381,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
         setWidgetToDelete(null);
         toast.success("Widget deleted");
-    }, [widgetToDelete]);
+    }, [gridCols, widgetToDelete]);
 
     const updateWidget = useCallback((id: string, updates: Partial<WidgetData>) => {
         setWidgets((prev: WidgetData[]) => prev.map((w: WidgetData) =>
@@ -502,7 +569,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                                     onClick={addWidget}
                                     className="px-8 py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg flex items-center gap-3"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg className="icon-neumorph" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
@@ -518,8 +585,8 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             className="layout"
                             layouts={derivedLayouts}
                             onLayoutChange={handleLayoutChange}
-                            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                            cols={{ lg: 4, md: 2, sm: 2, xs: 1, xxs: 1 }}
+                            breakpoints={gridBreakpoints}
+                            cols={gridCols}
                             rowHeight={280}
                             isDraggable={isEditable}
                             isResizable={false}
@@ -550,14 +617,14 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                 <motion.button
                     ref={addWidgetButtonRef}
                     onClick={addWidget}
-                    className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[100] h-14 w-14 sm:h-16 sm:w-16 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200"
+                    className="btn-neumorph-icon fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[100] h-14 w-14 sm:h-16 sm:w-16 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center"
                     title="Add New Widget"
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: "spring", damping: 20, stiffness: 300 }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg className="icon-neumorph" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>

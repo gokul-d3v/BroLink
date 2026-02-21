@@ -1,5 +1,3 @@
-import api from "../lib/api";
-
 export interface LinkMetadata {
     url: string;
     title: string;
@@ -10,19 +8,20 @@ export interface LinkMetadata {
 }
 
 export const fetchLinkMetadata = async (url: string): Promise<LinkMetadata> => {
+    let domain = "";
     try {
-        const response = await api.post('/metadata', { url });
-        return response.data;
-    } catch (error) {
-        console.error("Failed to fetch metadata:", error);
-        // Return basic fallback if fetch fails
-        return {
-            url,
-            title: "",
-            description: "",
-            image: "",
-            favicon: "",
-            domain: new URL(url).hostname
-        };
+        domain = new URL(url).hostname;
+    } catch {
+        domain = "";
     }
+
+    // No network call: return a minimal local fallback.
+    return {
+        url,
+        title: "",
+        description: "",
+        image: "",
+        favicon: "",
+        domain
+    };
 };

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import api from "../lib/api";
-import { fetchLinkMetadata } from "../api/mockMetadata";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
@@ -28,15 +27,13 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
     const [editUrl, setEditUrl] = useState(initialData.url || "");
     const [editThumbnail, setEditThumbnail] = useState(initialData.customImage || "");
     const [editCtaText, setEditCtaText] = useState(initialData.ctaText || "");
-    const [editImageFit, setEditImageFit] = useState<"cover" | "contain">(initialData.imageFit || "cover");
     const [urlError, setUrlError] = useState("");
-    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
-    const [lastFetchedUrl, setLastFetchedUrl] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Crop states
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const rawFileRef = useRef<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
@@ -54,13 +51,11 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
             setEditUrl(initialData.url || "");
             setEditThumbnail(initialData.customImage || "");
             setEditCtaText(initialData.ctaText || "");
-            setEditImageFit(initialData.imageFit || "cover");
             setUrlError("");
-            setLastFetchedUrl("");
         }
 
         prevIsOpenRef.current = isOpen;
-    }, [isOpen, initialData.customTitle, initialData.url, initialData.customImage, initialData.ctaText, initialData.imageFit]);
+    }, [isOpen, initialData.customTitle, initialData.url, initialData.customImage, initialData.ctaText]);
 
     const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -74,6 +69,37 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
             image.setAttribute('crossOrigin', 'anonymous'); // needed to avoid cross-origin issues on CodeSandbox
             image.src = url;
         });
+
+    const formatBytes = (bytes: number) => {
+        if (!bytes) return "0 B";
+        const units = ["B", "KB", "MB", "GB"];
+        const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+        const value = bytes / Math.pow(1024, index);
+        return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[index]}`;
+    };
+
+    const extensionForMime = (mime: string) => {
+        switch (mime) {
+            case "image/png":
+                return "png";
+            case "image/webp":
+                return "webp";
+            case "image/jpeg":
+            case "image/jpg":
+                return "jpg";
+            default:
+                return "jpg";
+        }
+    };
+
+    const buildUploadName = (original: File | null, blob: Blob, fallbackBase: string) => {
+        if (blob instanceof File && blob.name) {
+            return blob.name;
+        }
+        const base = original?.name ? original.name.replace(/\.[^/.]+$/, "") : fallbackBase;
+        const ext = extensionForMime(blob.type);
+        return `${base}.${ext}`;
+    };
 
     const getCroppedImg = async (imageSrc: string, pixelCrop: Area): Promise<Blob> => {
         const image = await createImage(imageSrc);
@@ -115,6 +141,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                 return;
             }
 
+            rawFileRef.current = file;
             const reader = new FileReader();
             reader.onload = () => {
                 setImageToCrop(reader.result as string);
@@ -124,36 +151,74 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
         }
     };
 
-    // Auto-fetch metadata effect
-    useEffect(() => {
-        const fetchMeta = async () => {
-            if (!editUrl || editUrl === lastFetchedUrl || !/^https?:\/\//i.test(editUrl)) return;
-
-            // Only auto-fetch if we don't have a custom image yet (or if we want to update it - user choice usually better if only empty)
-            // But user asked: "if i dont add image ... generate image"
-            if (editThumbnail) return;
-
-            try {
-                setIsFetchingMetadata(true);
-                setLastFetchedUrl(editUrl); // Prevent refetching same URL loop
-
-                const meta = await fetchLinkMetadata(editUrl);
-                if (meta.image) {
-                    setEditThumbnail(meta.image);
+    // Lightweight client-side compression (keeps quality, caps longest edge)
+    const compressImage = async (file: Blob, maxSize = 1400, quality = 0.82): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const originalSize = file.size || 0;
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                let { width, height } = img;
+                const shouldResize = width > maxSize || height > maxSize;
+                if (!shouldResize) {
+                    URL.revokeObjectURL(url);
+                    return resolve(file);
                 }
-                if (!editTitle && meta.title) {
-                    setEditTitle(meta.title);
-                }
-            } catch (e) {
-                console.error("Auto-fetch error", e);
-            } finally {
-                setIsFetchingMetadata(false);
-            }
-        };
+                const scale = Math.min(maxSize / width, maxSize / height);
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
 
-        const timer = setTimeout(fetchMeta, 800); // 800ms debounce
-        return () => clearTimeout(timer);
-    }, [editUrl, editThumbnail, lastFetchedUrl, editTitle]);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    URL.revokeObjectURL(url);
+                    return reject(new Error('No canvas context'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    URL.revokeObjectURL(url);
+                    if (!blob) {
+                        return reject(new Error('Compression failed'));
+                    }
+
+                    const finalize = (finalBlob: Blob, note?: string) => {
+                        if (originalSize > 0) {
+                            const ratio = finalBlob.size / originalSize;
+                            console.info(
+                                `[image] compressed ${formatBytes(originalSize)} -> ${formatBytes(finalBlob.size)} (${Math.round(ratio * 100)}%)${note ? ` ${note}` : ""}`
+                            );
+                        }
+                        resolve(finalBlob);
+                    };
+
+                    if (originalSize > 0) {
+                        const ratio = blob.size / originalSize;
+                        if (ratio >= 0.95) {
+                            const fallbackQuality = Math.max(quality - 0.15, 0.6);
+                            if (fallbackQuality < quality) {
+                                canvas.toBlob((second) => {
+                                    if (second) {
+                                        return finalize(second, "(re-encoded)");
+                                    }
+                                    finalize(blob);
+                                }, 'image/jpeg', fallbackQuality);
+                                return;
+                            }
+                        }
+                    }
+
+                    finalize(blob);
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = (error) => {
+                URL.revokeObjectURL(url);
+                reject(error);
+            };
+            img.src = url;
+        });
+    };
 
     const handleCropSave = async () => {
         if (!imageToCrop || !croppedAreaPixels) return;
@@ -161,8 +226,29 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
         try {
             setIsUploading(true);
             const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+            const compressed = await compressImage(croppedBlob);
             const formData = new FormData();
-            formData.append('file', croppedBlob, 'cropped-image.jpg');
+            formData.append('file', compressed, buildUploadName(null, compressed, "cropped-image"));
+
+            const response = await api.post('/upload', formData);
+            setEditThumbnail(response.data.url);
+            setIsCropModalOpen(false);
+            setImageToCrop(null);
+        } catch (error) {
+            console.error("Upload failed", error);
+            toast.error("Failed to upload image");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleUseOriginal = async () => {
+        if (!rawFileRef.current) return;
+        try {
+            setIsUploading(true);
+            const compressed = await compressImage(rawFileRef.current);
+            const formData = new FormData();
+            formData.append('file', compressed, buildUploadName(rawFileRef.current, compressed, "upload"));
 
             const response = await api.post('/upload', formData);
             setEditThumbnail(response.data.url);
@@ -193,8 +279,7 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
             customTitle: editTitle,
             url: editUrl,
             customImage: editThumbnail,
-            ctaText: editCtaText,
-            imageFit: editImageFit
+            ctaText: editCtaText
         });
         onClose();
     };
@@ -285,26 +370,25 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                             }}
                         >
                             {/* Header */}
-                            <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-gray-100 dark:border-white/10 sticky top-0 z-10">
+                            <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-3 sm:pb-4 bg-white/80 dark:bg-black backdrop-blur-md border-b border-gray-100 dark:border-white/10 sticky top-0 z-10">
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{title || "Add New Widget"}</h2>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-                                        <X className="h-5 w-5" />
+                                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 text-gray-400 hover:bg-gray-100 dark:hover:bg-black/80 transition-colors">
+                                        <X className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            </div>
 
                             {/* Form Content */}
-                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto bg-[#F2F2F7] dark:bg-[#000000] flex-1">
+                            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto bg-[#F2F2F7] dark:bg-black flex-1">
                                 {/* Top Row: Title/URL (2/3) + Thumbnail (1/3) */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                                     {/* Left Column: Title & URL */}
-                                    <div className="md:col-span-2 bg-white dark:bg-[#1C1C1E] rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
+                                    <div className="md:col-span-2 bg-white dark:bg-black rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
                                         <div className="flex flex-col">
                                             <div className="relative group px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-white/10">
-                                                <Label htmlFor="title" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                <Label htmlFor="title" className="text-[11px] font-medium text-gray-500 dark:text-white uppercase tracking-wide">
                                                     Title
                                                 </Label>
                                                 <Input
@@ -319,15 +403,12 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
 
                                             <div className="relative group px-4 sm:px-5 py-3">
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <Label htmlFor="url" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                    <Label htmlFor="url" className="text-[11px] font-medium text-gray-500 dark:text-white uppercase tracking-wide">
                                                         Link URL <span className="text-red-500">*</span>
                                                     </Label>
-                                                    {isFetchingMetadata && (
-                                                        <div className="w-3 h-3 border-2 border-gray-200 border-t-black dark:border-t-white rounded-full animate-spin"></div>
-                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <LinkIcon className="h-4 w-4 text-black dark:text-white flex-shrink-0" />
+                                                    <LinkIcon className="h-3.5 w-3.5 text-black dark:text-white flex-shrink-0" />
                                                     <Input
                                                         id="url"
                                                         type="url"
@@ -352,22 +433,22 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                                     </div>
 
                                     {/* Right Column: Thumbnail */}
-                                    <div className="md:col-span-1 bg-white dark:bg-[#1C1C1E] rounded-[18px] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col h-full">
-                                        <Label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                                    <div className="md:col-span-1 bg-white dark:bg-black rounded-[18px] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col h-full">
+                                        <Label className="text-[11px] font-medium text-gray-500 dark:text-white uppercase tracking-wide mb-3">
                                             Thumbnail
                                         </Label>
 
                                         <div className="flex-1 flex flex-col gap-3">
                                             <div
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="flex-1 min-h-[120px] rounded-xl overflow-hidden relative group cursor-pointer bg-gray-50 dark:bg-[#2C2C2E] transition-all hover:opacity-90 flex items-center justify-center border border-dashed border-gray-200 dark:border-white/10"
+                                                className="flex-1 min-h-[120px] rounded-xl overflow-hidden relative group cursor-pointer bg-gray-50 dark:bg-black transition-all hover:opacity-90 flex items-center justify-center border border-dashed border-gray-200 dark:border-white/10"
                                             >
                                                 {editThumbnail ? (
                                                     <img src={editThumbnail} alt="Preview" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="flex flex-col items-center justify-center gap-2">
-                                                        <div className="w-10 h-10 rounded-full bg-white dark:bg-[#3A3A3C] shadow-sm flex items-center justify-center text-black dark:text-white">
-                                                            <Upload className="h-5 w-5" />
+                                                        <div className="w-10 h-10 rounded-full bg-white dark:bg-black shadow-sm flex items-center justify-center text-black dark:text-white">
+                                                            <Upload className="h-4 w-4" />
                                                         </div>
                                                         <p className="text-xs text-gray-400">Add Image</p>
                                                     </div>
@@ -388,73 +469,36 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                                     </div>
                                 </div>
 
-                                {/* Bottom Row: Image Fit (1/3) + CTA (2/3) */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                                    <div className="md:col-span-1 bg-white dark:bg-[#1C1C1E] rounded-[18px] p-4 sm:p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                        <Label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3 block">
-                                            Image Fit
+                                <div className="bg-white dark:bg-black rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col overflow-hidden">
+                                    <div className="px-4 sm:px-5 py-2">
+                                        <Label htmlFor="cta" className="text-[11px] font-medium text-gray-500 dark:text-white uppercase tracking-wide">
+                                            Button Label
                                         </Label>
-                                        {/* Apple-style Segmented Control */}
-                                        <div className="bg-[#EEEEEF] dark:bg-[#2C2C2E] p-1 rounded-lg flex relative">
-                                            <motion.div
-                                                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-[#636366] rounded-md shadow-sm z-0"
-                                                initial={false}
-                                                animate={{ x: editImageFit === "cover" ? 0 : "100%" }}
-                                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditImageFit("cover")}
-                                                className={cn(
-                                                    "flex-1 py-1.5 text-[13px] font-medium relative z-10 transition-colors text-center rounded-md",
-                                                    editImageFit === "cover" ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-300"
-                                                )}
-                                            >
-                                                Fill
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setEditImageFit("contain")}
-                                                className={cn(
-                                                    "flex-1 py-1.5 text-[13px] font-medium relative z-10 transition-colors text-center rounded-md",
-                                                    editImageFit === "contain" ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-300"
-                                                )}
-                                            >
-                                                Fit
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="md:col-span-2 bg-white dark:bg-[#1C1C1E] rounded-[18px] shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col justify-center overflow-hidden">
-                                        <div className="px-4 sm:px-5 py-2">
-                                            <Label htmlFor="cta" className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                                Button Label
-                                            </Label>
-                                            <Input
-                                                id="cta"
-                                                type="text"
-                                                value={editCtaText}
-                                                onChange={(e) => setEditCtaText(e.target.value)}
-                                                placeholder="e.g. Visit Website"
-                                                className="h-10 -ml-3 w-[calc(100%+1.5rem)] border-none shadow-none focus-visible:ring-0 bg-transparent text-[15px] font-normal text-gray-900 dark:text-white placeholder:text-gray-400 px-3"
-                                            />
-                                        </div>
+                                        <Input
+                                            id="cta"
+                                            type="text"
+                                            value={editCtaText}
+                                            onChange={(e) => setEditCtaText(e.target.value)}
+                                            placeholder="e.g. Visit Website"
+                                            className="h-10 -ml-3 w-[calc(100%+1.5rem)] border-none shadow-none focus-visible:ring-0 bg-transparent text-[15px] font-normal text-gray-900 dark:text-white placeholder:text-gray-400 px-3"
+                                        />
                                     </div>
                                 </div>
                             </div>
+                            </div>
 
                             {/* Footer */}
-                            <div className="p-4 sm:p-5 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-t border-gray-100 dark:border-white/10 flex items-center justify-end gap-3 z-10">
+                            <div className="p-4 sm:p-5 bg-white/80 dark:bg-black backdrop-blur-md border-t border-gray-100 dark:border-white/10 flex items-center justify-end gap-3 z-10">
                                 <Button
                                     variant="ghost"
                                     onClick={onClose}
-                                    className="text-[15px] font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full px-4 sm:px-6"
+                                    className="text-[15px] font-medium text-gray-500 hover:text-gray-900 dark:text-white dark:hover:text-white hover:bg-black/5 dark:hover:bg-black/80 rounded-full px-4 sm:px-6"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={handleSave}
-                                    className="px-5 py-2.5 rounded-full font-medium shadow-lg transition-all bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 flex items-center gap-2"
+                                    className="px-5 py-2.5 rounded-full font-medium shadow-lg transition-all bg-black dark:bg-black text-white dark:text-white hover:bg-gray-800 dark:hover:bg-black/80 flex items-center gap-2"
                                 >
                                     Save
                                 </Button>
@@ -466,10 +510,10 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
 
             {/* Crop Modal */}
             <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
-                <DialogContent className="sm:max-w-[600px] p-0 gap-0 rounded-3xl overflow-hidden border-none shadow-2xl bg-white dark:bg-gray-900">
+                <DialogContent className="sm:max-w-[600px] p-0 gap-0 rounded-3xl overflow-hidden border-none shadow-2xl bg-white dark:bg-black">
                     <div className="px-8 pt-8 pb-6 border-b border-gray-100 dark:border-gray-800">
-                        <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Crop Image</DialogTitle>
-                        <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">Adjust the crop area and zoom</DialogDescription>
+                        <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Crop Image</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500 dark:text-white mt-1">Adjust the crop area and zoom</DialogDescription>
                     </div>
 
                     <div className="relative h-[400px] w-full bg-black/5">
@@ -501,8 +545,18 @@ export const WidgetEditorModal = ({ isOpen, onClose, onSave, initialData = {}, b
                             />
                         </div>
 
-                        <div className="flex gap-3">
-                            <Button variant="ghost" onClick={() => setIsCropModalOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-semibold" disabled={isUploading}>Cancel</Button>
+                        <div className="flex gap-3 flex-col sm:flex-row">
+                            <div className="flex flex-1 gap-2">
+                                <Button variant="ghost" onClick={() => setIsCropModalOpen(false)} className="flex-1 h-12 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-semibold" disabled={isUploading}>Cancel</Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleUseOriginal}
+                                    className="flex-1 h-12 rounded-xl font-semibold border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 shadow-sm dark:border-white/15 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800"
+                                    disabled={isUploading}
+                                >
+                                    Use without crop
+                                </Button>
+                            </div>
                             <Button onClick={handleCropSave} className="flex-1 h-12 rounded-xl bg-black text-white hover:bg-gray-800 font-bold shadow-lg shadow-black/10" disabled={isUploading}>
                                 {isUploading ? (
                                     <div className="flex items-center gap-2">

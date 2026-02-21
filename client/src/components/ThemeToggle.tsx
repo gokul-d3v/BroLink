@@ -34,13 +34,13 @@ export function ThemeToggle() {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="rounded-full w-10 h-10 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200 shadow-lg"
+            className="btn-neumorph-icon w-10 h-10 rounded-full hover:scale-110 active:scale-95 duration-200"
             title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
         >
             {theme === "light" ? (
-                <Moon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-white" />
+                <Moon className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-gray-800" />
             ) : (
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-black" />
+                <Sun className="h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-white" />
             )}
             <span className="sr-only">Toggle theme</span>
         </Button>

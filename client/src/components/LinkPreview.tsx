@@ -49,7 +49,7 @@ export const LinkPreview = () => {
 
                         <div className="relative group/input">
                             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                                <LinkIcon className="h-5 w-5 text-gray-400 group-focus-within/input:text-purple-600 transition-colors duration-300" />
+                                <LinkIcon className="h-4 w-4 text-gray-400 group-focus-within/input:text-purple-600 transition-colors duration-300" />
                             </div>
                             <Input
                                 placeholder="paste your link..."
@@ -89,7 +89,7 @@ export const LinkPreview = () => {
                         <div className="h-full w-full bg-white rounded-xl p-8 shadow-sm flex flex-col items-center justify-center text-center space-y-4 border border-red-100 relative overflow-hidden">
                             <div className="absolute inset-0 bg-red-50/30" />
                             <div className="h-16 w-16 bg-red-100 rounded-xl flex items-center justify-center relative z-10 text-red-500 mb-2">
-                                <AlertCircle className="h-8 w-8" />
+                                <AlertCircle className="h-6 w-6" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 relative z-10">Oops!</h3>
                             <p className="text-gray-500 max-w-[200px] relative z-10">{error}</p>
@@ -98,7 +98,7 @@ export const LinkPreview = () => {
                         <BentoCard data={metadata} />
                     ) : (
                         <div className="h-full w-full bg-gray-100/50 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 gap-4 group cursor-default hover:border-gray-300 hover:bg-gray-100 transition-all duration-300">
-                            <Search className="h-12 w-12 opacity-20 group-hover:scale-110 transition-transform duration-300" />
+                            <Search className="h-10 w-10 opacity-20 group-hover:scale-110 transition-transform duration-300" />
                             <p className="font-medium opacity-40">Preview awaits...</p>
                         </div>
                     )}
@@ -124,6 +124,7 @@ const BentoCard = ({ data }: { data: LinkMetadata }) => {
                 <img
                     src={data.image}
                     alt={data.title}
+                    loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-70 transition-opacity duration-500" />
@@ -150,7 +151,7 @@ const BentoCard = ({ data }: { data: LinkMetadata }) => {
 
                 {/* External Link Icon */}
                 <div className="absolute top-8 right-8 h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white opacity-0 group-hover:opacity-100 group-hover:scale-100 scale-90 transition-all duration-300">
-                    <ArrowUpRight className="h-5 w-5" />
+                    <ArrowUpRight className="h-4 w-4" />
                 </div>
             </div>
         </a>

@@ -122,7 +122,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
             >
                 <div className="w-full max-w-xs space-y-5 text-center">
                     <div className="mx-auto h-14 w-14 bg-white text-purple-600 rounded-xl flex items-center justify-center mb-1 shadow-sm ring-1 ring-black/5">
-                        <LinkIcon className="h-7 w-7" />
+                        <LinkIcon className="h-6 w-6" />
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-800 text-lg">Add a Link</h3>
@@ -141,7 +141,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                                 onRemove(data.id, data.customImage);
                             }}
                         >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                     </div>
                 )}
@@ -163,7 +163,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
     if (error) {
         return (
             <div className={cn("bg-red-50/30 backdrop-blur-md rounded-xl p-6 flex flex-col items-center justify-center text-center relative group", spanClass)}>
-                <AlertCircle className="h-10 w-10 text-red-400 mb-3" />
+                <AlertCircle className="h-8 w-8 text-red-400 mb-3" />
                 <p className="text-red-600 font-medium">Broken Link</p>
                 <p className="text-xs text-red-400/80 mb-4">{error}</p>
                 {isEditable && (
@@ -174,7 +174,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                 {isEditable && (
                     <div className="absolute top-4 right-4 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/40 hover:bg-white/80 shadow-sm backdrop-blur-sm" onClick={() => onRemove(data.id, data.customImage)}>
-                            <Trash2 className="h-4 w-4 text-gray-500" />
+                            <Trash2 className="h-3.5 w-3.5 text-gray-500" />
                         </Button>
                     </div>
                 )}
@@ -204,6 +204,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                                 src={data.customImage || metadata?.image}
                                 alt={data.customTitle || metadata?.title}
                                 draggable={false}
+                                loading="lazy"
                                 className={cn(
                                     "h-full w-full",
                                     data.imageFit === "contain" ? "object-contain bg-black/5" : "object-cover"
@@ -240,15 +241,11 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                                 </div>
                                 {/* Button - always at bottom */}
                                 <div className="flex">
-                                    <button className="relative bg-white/10 backdrop-blur-sm text-white text-xs font-medium px-4 py-2 rounded-full shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.4)] hover:bg-white/20 hover:scale-105 active:scale-95 transition-all overflow-hidden group/btn border border-white/20">
-                                        <span className="relative z-10 flex items-center justify-center gap-1 drop-shadow-md">
+                                    <button className="cta-neumorph text-white text-xs font-semibold px-4 py-2 rounded-full">
+                                        <span className="flex items-center justify-center gap-1 drop-shadow-md">
                                             {data.ctaText || "Visit"}
-                                            <ArrowUpRight className="h-3 w-3" />
+                                            <ArrowUpRight className="h-2.5 w-2.5" />
                                         </span>
-                                        {/* Inner light glow */}
-                                        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-white/5 to-transparent opacity-60" />
-                                        {/* Shimmer */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                                     </button>
                                 </div>
                             </div>
@@ -261,7 +258,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                                             {metadata?.favicon ? (
                                                 <img src={metadata.favicon} alt="" className="h-5 w-5 object-contain" />
                                             ) : (
-                                                <LinkIcon className="h-4 w-4 text-white" />
+                                                <LinkIcon className="h-3.5 w-3.5 text-white" />
                                             )}
                                         </div>
                                         <span className="text-xs font-bold tracking-wide text-white/95 drop-shadow-md uppercase">
@@ -275,15 +272,11 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
 
                                 {/* Liquid Glass CTA Button - Bottom Aligned */}
                                 <div className="mt-auto pb-0">
-                                    <button className="relative bg-white/10 backdrop-blur-sm text-white text-xs font-medium px-4 py-2 rounded-full shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.4)] hover:bg-white/20 hover:scale-105 active:scale-95 transition-all overflow-hidden group/btn border border-white/20">
-                                        <span className="relative z-10 flex items-center justify-center gap-1 drop-shadow-md">
+                                    <button className="cta-neumorph text-white text-xs font-semibold px-4 py-2 rounded-full">
+                                        <span className="flex items-center justify-center gap-1 drop-shadow-md">
                                             {data.ctaText || "Visit Page"}
-                                            <ArrowUpRight className="h-3 w-3" />
+                                            <ArrowUpRight className="h-2.5 w-2.5" />
                                         </span>
-                                        {/* Inner light glow */}
-                                        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-white/5 to-transparent opacity-60" />
-                                        {/* Shimmer */}
-                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                                     </button>
                                 </div>
                             </div>
@@ -302,7 +295,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/40 hover:bg-white/80 backdrop-blur-sm shadow-sm transition-all focus:ring-0">
-                                    <MoreHorizontal className="h-4 w-4 text-gray-700" />
+                                    <MoreHorizontal className="h-3.5 w-3.5 text-gray-700" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl bg-white/90 backdrop-blur-xl border border-white/20 shadow-xl">
@@ -327,10 +320,10 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                                 </div>
                                 <DropdownMenuSeparator className="bg-gray-200/50 my-2" />
                                 <DropdownMenuItem onClick={() => onEdit(data, editButtonRef)} className="rounded-xl cursor-pointer py-2.5 px-3 focus:bg-gray-100/80 focus:text-gray-900 text-gray-600 font-medium transition-colors">
-                                    <Pencil className="mr-2.5 h-4 w-4 text-gray-400" /> Edit Content
+                                    <Pencil className="mr-2.5 h-3.5 w-3.5 text-gray-400" /> Edit Content
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => onRemove(data.id, data.customImage)} className="rounded-xl cursor-pointer py-2.5 px-3 text-red-500 focus:text-red-600 focus:bg-red-50 font-medium transition-colors">
-                                    <Trash2 className="mr-2.5 h-4 w-4 opacity-80" /> Remove
+                                    <Trash2 className="mr-2.5 h-3.5 w-3.5 opacity-80" /> Remove
                                 </DropdownMenuItem>
                             </DropdownMenuContent >
                         </DropdownMenu >
@@ -340,7 +333,7 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
                 {/* External Link Indicator */}
                 <div className="absolute top-4 left-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                     <div className="h-8 w-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center border border-white/10 text-white shadow-sm ring-1 ring-white/10">
-                        <ArrowUpRight className="h-4 w-4" />
+                        <ArrowUpRight className="h-3.5 w-3.5" />
                     </div>
                 </div>
             </div >

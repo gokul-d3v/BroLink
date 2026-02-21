@@ -7,4 +7,7 @@ coverage/
 .DS_Store
 Thumbs.db
 server/uploads/
+server-go/uploads/
 .vscode/
+server/brolink-server
+server-go/brolink-server

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
 
 export const Public = () => {
     // Display marketing admin's widgets on homepage
     const [isScrolled, setIsScrolled] = useState(false);
+    const { username } = useParams<{ username: string }>();
+    const targetUsername = username || "marketing";
 
     useEffect(() => {
         const handleScroll = () => {
@@ -27,11 +30,22 @@ export const Public = () => {
                 <h1 className="text-2xl font-bold tracking-tight">BROTOTYPE</h1>
             </div>
 
-            <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[200]">
+            <div
+                className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-[200] flex items-center gap-3 transition-opacity duration-300 ${isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+            >
+                <a
+                    href="https://www.brototype.com/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cta-neumorph text-xs font-semibold px-4 py-2 rounded-full"
+                >
+                    Connect
+                </a>
                 <ThemeToggle />
             </div>
 
-            <BentoGrid isEditable={false} publicUsername="marketing" />
+            <BentoGrid isEditable={false} publicUsername={targetUsername} />
         </div>
     );
 };

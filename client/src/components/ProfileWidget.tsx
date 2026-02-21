@@ -35,14 +35,14 @@ export const ProfileWidget = ({ fullName, username, avatarUrl }: ProfileWidgetPr
             {/* Action Buttons */}
             <div className="flex gap-2">
                 <button className="h-11 w-11 rounded-full bg-[#1d1d1f] hover:bg-[#2d2d2f] flex items-center justify-center text-white transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] shadow-sm">
-                    <Mail className="h-5 w-5" />
+                    <Mail className="h-4 w-4" />
                 </button>
                 <button
                     onClick={() => navigator.clipboard.writeText(window.location.href)}
                     className="h-11 w-11 rounded-full bg-[#1d1d1f] hover:bg-[#2d2d2f] flex items-center justify-center text-white transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] shadow-sm"
                     title="Copy Link"
                 >
-                    <LinkIcon className="h-5 w-5" />
+                    <LinkIcon className="h-4 w-4" />
                 </button>
             </div>
 

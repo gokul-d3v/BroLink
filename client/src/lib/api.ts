@@ -1,14 +1,19 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-    // 1. If running on Localhost, prioritize Env var or default to local backend.
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Primary source: explicit frontend env var for Go backend URL.
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    if (envApiUrl && envApiUrl.trim().length > 0) {
+        return envApiUrl.trim();
     }
 
-    // 2. If running on Vercel (or any non-local domain), FORCE the production backend.
-    // This ignores any incorrect VITE_API_URL that might have leaked into the build.
-    return 'https://brolink-nmny.onrender.com/api';
+    // Local fallback for development.
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api';
+    }
+
+    // If frontend and backend are deployed under same origin/reverse proxy.
+    return `${window.location.origin}/api`;
 };
 
 const baseUrl = getBaseUrl();

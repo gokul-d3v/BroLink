@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -7,6 +7,7 @@ import api from "../lib/api";
 
 export const Admin = () => {
     const navigate = useNavigate();
+    const { username: routeUsername } = useParams<{ username: string }>();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -29,6 +30,9 @@ export const Admin = () => {
                 setIsAuthenticated(true);
 
                 setUsername(user.username);
+                if (routeUsername && routeUsername !== user.username) {
+                    navigate(`/admin/${user.username}`, { replace: true });
+                }
 
             } catch (error) {
                 setIsAuthenticated(false);
@@ -57,13 +61,14 @@ export const Admin = () => {
     };
 
     const handleViewPublic = () => {
-        window.open("/", "_blank");
+        const target = routeUsername || username || "";
+        window.open(`/${target}`, "_blank");
     };
 
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="animate-spin h-8 w-8 text-gray-900" />
+                <Loader2 className="animate-spin h-6 w-6 text-gray-900" />
             </div>
         );
     }
@@ -91,17 +96,17 @@ export const Admin = () => {
                 <button
                     onClick={handleViewPublic}
                     disabled={!username}
-                    className="rounded-full w-10 h-10 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200 shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-neumorph-icon w-10 h-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     title="View Public Page"
                 >
-                    <Eye className="h-[1.2rem] w-[1.2rem]" />
+                    <Eye className="h-4 w-4" />
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="rounded-full w-10 h-10 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 hover:scale-110 active:scale-95 transition-all duration-200 shadow-lg flex items-center justify-center"
+                    className="btn-neumorph-icon w-10 h-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center"
                     title="Logout"
                 >
-                    <LogOut className="h-[1.2rem] w-[1.2rem]" />
+                    <LogOut className="h-4 w-4" />
                 </button>
             </div>
 
