@@ -12,8 +12,4 @@ func Register(api fiber.Router, state *app.State, uploadsDir string) {
 	RegisterMetadata(api, state)
 	RegisterUpload(api, state, uploadsDir)
 	RegisterAdmin(api, state)
-
-	api.Options("/*", func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusNoContent)
-	})
 }

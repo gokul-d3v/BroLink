@@ -27,9 +27,7 @@ func Load() *Config {
 
 	allowed := []string{
 		"https://bro-links.vercel.app",
-		"https://bro-links.vercel.app/",
 		"https://link.brototype.com",
-		"https://link.brototype.com/",
 		"http://localhost:5173",
 	}
 	if clientURL := strings.TrimSpace(os.Getenv("CLIENT_URL")); clientURL != "" {
