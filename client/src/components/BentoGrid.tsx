@@ -309,9 +309,6 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         setLayouts((prev: any) => {
             const newLayouts: any = { ...prev };
 
-            // Define columns for each breakpoint
-            const cols: { [key: string]: number } = { lg: 4, md: 2, sm: 2, xs: 1, xxs: 1 };
-
             // If 'lg' (default) is missing, initialize it
             if (!newLayouts.lg) newLayouts.lg = [];
 
