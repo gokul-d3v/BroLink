@@ -2,7 +2,7 @@
 // ... imports
 import { useState, useEffect, useCallback, useRef } from "react";
 // Removed Cropper imports as they are now in WidgetEditorModal
-// Removed api import (unused)
+import api from "../lib/api";
 import { type LinkMetadata, fetchLinkMetadata } from "../api/mockMetadata";
 import { Card } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
@@ -30,12 +30,13 @@ interface LinkWidgetProps {
     onRemove: (id: string, imageUrl?: string) => void;
     onEdit: (data: WidgetData, buttonRef: { current: HTMLElement | null }) => void;
     isEditable?: boolean;
+    ownerUsername?: string;
 }
 
 
 
 
-export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = false }: LinkWidgetProps) => {
+export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = false, ownerUsername }: LinkWidgetProps) => {
     const [loading, setLoading] = useState(false);
     const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -92,6 +93,17 @@ export const LinkWidget = ({ data, onUpdate, onRemove, onEdit, isEditable = fals
         e.preventDefault();
         e.stopPropagation();
         if (!isDragging && data.url) {
+            // Fire-and-forget click tracking
+            if (ownerUsername) {
+                api.post("/clicks", {
+                    widget_id: data.id,
+                    owner_username: ownerUsername,
+                    url: data.url,
+                    custom_title: data.customTitle || "",
+                    custom_image: data.customImage || "",
+                    referrer: document.referrer || "",
+                }).catch(() => { /* silently ignore */ });
+            }
             window.open(data.url, "_blank", "noopener,noreferrer");
         }
     };

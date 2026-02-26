@@ -12,4 +12,5 @@ func Register(api fiber.Router, state *app.State, uploadsDir string) {
 	RegisterMetadata(api, state)
 	RegisterUpload(api, state, uploadsDir)
 	RegisterAdmin(api, state)
+	RegisterAnalytics(api, state)
 }

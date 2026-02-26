@@ -42,6 +42,10 @@ func (m *Mongo) BentoConfigs() *mongo.Collection {
 	return m.DB.Collection("bentoconfigs")
 }
 
+func (m *Mongo) Clicks() *mongo.Collection {
+	return m.DB.Collection("clickevents")
+}
+
 func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	unique := true
 	users := m.Users()
@@ -57,6 +61,13 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	_, err = configs.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "user", Value: 1}}, Options: &options.IndexOptions{Unique: &unique}},
 		{Keys: bson.D{{Key: "username", Value: 1}}, Options: &options.IndexOptions{Unique: &unique}},
+	})
+	if err != nil {
+		return err
+	}
+	clicks := m.Clicks()
+	_, err = clicks.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "owner_username", Value: 1}, {Key: "widget_id", Value: 1}}},
 	})
 	if err != nil {
 		return err

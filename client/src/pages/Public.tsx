@@ -27,7 +27,7 @@ export const Public = () => {
                 className={`fixed top-4 left-4 sm:top-6 sm:left-6 z-[200] transition-opacity duration-300 ${isScrolled ? 'opacity-0' : 'opacity-100'
                     }`}
             >
-                <h1 className="text-2xl font-bold tracking-tight">BROTOTYPE</h1>
+                <img src="/logo.png" alt="Brototype" className="h-10 w-auto dark:invert" />
             </div>
 
             <div

@@ -20,8 +20,8 @@ function App() {
         {/* Public profile */}
         <Route path="/:username" element={<Public />} />
 
-        {/* Fallback: redirect home to marketing public page */}
-        <Route path="/" element={<Navigate to="/marketing" replace />} />
+        {/* Fallback: redirect home to login */}
+        <Route path="/" element={<Navigate to="/admin-login" replace />} />
       </Routes>
     </>
   );

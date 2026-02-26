@@ -550,13 +550,13 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                     {/* Empty State */}
                     {widgets.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-                            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+                            <div className="w-20 h-20 bg-gray-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-transparent dark:border-white/10 backdrop-blur-sm">
                                 <span className="text-4xl">📦</span>
                             </div>
-                            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 tracking-tight">
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
                                 {isEditable ? "No widgets yet" : "Nothing to see here"}
                             </h2>
-                            <p className="text-gray-500 dark:text-gray-400 text-lg max-w-md mb-8">
+                            <p className="text-gray-500 dark:text-white/60 text-lg max-w-md mb-8">
                                 {isEditable
                                     ? "Start building your BROTOTYPE grid by adding your first widget."
                                     : "This page doesn't have any widgets yet."}
@@ -601,6 +601,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                                             onRemove={removeWidget}
                                             onEdit={handleEditWidget}
                                             isEditable={isEditable}
+                                            ownerUsername={publicUsername || currentUserUsername || undefined}
                                         />
                                     </div>
                                 </div>
@@ -652,17 +653,17 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
             {/* Delete Confirmation Modal */}
             <Dialog open={!!widgetToDelete} onOpenChange={(open: boolean) => !open && setWidgetToDelete(null)}>
-                <DialogContent className="sm:max-w-[400px] p-6 rounded-3xl border-none shadow-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
+                <DialogContent className="sm:max-w-[400px] p-6 rounded-3xl border border-transparent dark:border-white/10 shadow-2xl bg-white/95 dark:bg-[#1c1b1e]/95 backdrop-blur-xl">
                     <DialogHeader className="mb-4">
-                        <DialogTitle className="text-xl font-bold tracking-tight text-center">Delete Widget?</DialogTitle>
-                        <DialogDescription className="text-center text-gray-500 dark:text-gray-400 mt-2">
+                        <DialogTitle className="text-xl font-bold tracking-tight text-center text-gray-900 dark:text-white">Delete Widget?</DialogTitle>
+                        <DialogDescription className="text-center text-gray-500 dark:text-white/60 mt-2">
                             This action cannot be undone. This will permanently delete the widget from your grid.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-3 justify-center sm:justify-center w-full">
                         <button
                             onClick={() => setWidgetToDelete(null)}
-                            className="flex-1 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all focus-visible:outline-none disabled:opacity-50 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 h-11 px-4 shadow-sm"
+                            className="flex-1 inline-flex items-center justify-center rounded-2xl text-sm font-semibold transition-all focus-visible:outline-none disabled:opacity-50 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-900 dark:text-white h-11 px-4 shadow-sm"
                         >
                             Cancel
                         </button>

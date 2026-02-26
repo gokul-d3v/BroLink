@@ -2,8 +2,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { BentoGrid } from "../components/BentoGrid";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { LogOut, Eye, Loader2 } from "lucide-react";
+import { LogOut, Eye, Loader2, BarChart2 } from "lucide-react";
 import api from "../lib/api";
+import { Dashboard } from "./Dashboard";
 
 export const Admin = () => {
     const navigate = useNavigate();
@@ -11,7 +12,7 @@ export const Admin = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
-
+    const [showDashboard, setShowDashboard] = useState(false);
     const [username, setUsername] = useState<string | null>(null);
 
     useEffect(() => {
@@ -88,29 +89,37 @@ export const Admin = () => {
                 className={`fixed top-4 left-4 sm:top-6 sm:left-6 z-[200] transition-opacity duration-300 ${isScrolled ? 'opacity-0' : 'opacity-100'
                     }`}
             >
-                <h1 className="text-2xl font-bold tracking-tight">BROTOTYPE</h1>
+                <img src="/logo.png" alt="Brototype" className="h-7 sm:h-10 w-auto dark:invert" />
             </div>
 
-            <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[200] flex gap-2 sm:gap-3">
+            <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-[200] flex gap-1.5 sm:gap-2">
                 <ThemeToggle />
+                <button
+                    onClick={() => setShowDashboard(prev => !prev)}
+                    className={`btn-neumorph-icon h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center ${showDashboard ? "bg-black text-white" : ""
+                        }`}
+                    title="Analytics Dashboard"
+                >
+                    <BarChart2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </button>
                 <button
                     onClick={handleViewPublic}
                     disabled={!username}
-                    className="btn-neumorph-icon w-10 h-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-neumorph-icon h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     title="View Public Page"
                 >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="btn-neumorph-icon w-10 h-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center"
+                    className="btn-neumorph-icon h-8 w-8 sm:h-10 sm:w-10 hover:scale-110 active:scale-95 duration-200 flex items-center justify-center"
                     title="Logout"
                 >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
             </div>
 
-            <BentoGrid isEditable={true} />
+            {showDashboard ? <Dashboard /> : <BentoGrid isEditable={true} />}
         </div>
     );
 };

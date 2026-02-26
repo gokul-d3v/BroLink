@@ -48,7 +48,8 @@ func main() {
 	}
 
 	app := fiber.New(fiber.Config{
-		BodyLimit: 20 * 1024 * 1024,
+		BodyLimit:   20 * 1024 * 1024,
+		ProxyHeader: fiber.HeaderXForwardedFor,
 	})
 
 	app.Use(compress.New(compress.Config{
