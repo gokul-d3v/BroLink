@@ -140,6 +140,21 @@ const reflowLayout = (layout: any[], cols: number): any[] => {
     return result;
 };
 
+// Pre-generates all breakpoint layouts from an lg layout sorted by (y, x).
+// This prevents ReactGridLayout from auto-generating them in wrong order on mobile.
+const buildResponsiveLayouts = (lgLayout: any[]): any => {
+    // Sort lg layout by reading order: top-to-bottom, left-to-right
+    const sorted = [...lgLayout].sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+
+    return {
+        lg: sorted,                          // 4 cols
+        md: reflowLayout(sorted, 2),         // 2 cols
+        sm: reflowLayout(sorted, 2),         // 2 cols
+        xs: reflowLayout(sorted, 1),         // 1 col
+        xxs: reflowLayout(sorted, 1),        // 1 col
+    };
+};
+
 interface BentoGridProps {
     isEditable: boolean;
     publicUsername?: string;
@@ -237,13 +252,10 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
                     setWidgets(parsedWidgets || []);
 
-                    // Force rebuild of responsive layouts from 'lg' to fix broken mobile layouts.
-                    // Also sort lg by (y, x) so the responsive collapse always stacks in correct order.
+                    // Build all breakpoint layouts from the lg layout so mobile order always
+                    // matches the desktop (y, x) reading order.
                     if (parsedLayouts && parsedLayouts.lg) {
-                        const sortedLg = [...parsedLayouts.lg].sort((a: any, b: any) =>
-                            a.y !== b.y ? a.y - b.y : a.x - b.x
-                        );
-                        setLayouts({ lg: sortedLg });
+                        setLayouts(buildResponsiveLayouts(parsedLayouts.lg));
                     } else {
                         setLayouts(parsedLayouts || {});
                     }
@@ -315,37 +327,13 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
         setWidgets(prev => [...prev, newWidget]);
 
-        // Explicitly add to layout to prevent alignment issues
+        // Explicitly add to all breakpoint layouts so mobile order always matches desktop.
         setLayouts((prev: any) => {
-            const newLayouts: any = { ...prev };
-
-            // If 'lg' (default) is missing, initialize it
-            if (!newLayouts.lg) newLayouts.lg = [];
-
-            // Iterate over all breakpoints in the current layout state, plus ensure 'lg' is covered
-            const allBreakpoints = new Set([...Object.keys(newLayouts), 'lg']);
-
-            allBreakpoints.forEach(bk => {
-                const currentLayout = newLayouts[bk] || [];
-                const currentCols = gridCols[bk as keyof typeof gridCols] || 4; // Default to 4 if unknown
-
-                // Smart Placement: Find first available spot for this specific breakpoint
-                const { x, y } = findNextAvailablePosition(currentLayout, currentCols);
-
-                const newItem = {
-                    i: id,
-                    x,
-                    y,
-                    w: 1,
-                    h: 1,
-                    minW: 1,
-                    minH: 1
-                };
-
-                newLayouts[bk] = [...currentLayout, newItem];
-            });
-
-            return newLayouts;
+            const currentLg = prev.lg || [];
+            const { x, y } = findNextAvailablePosition(currentLg, 4);
+            const newItem = { i: id, x, y, w: 1, h: 1, minW: 1, minH: 1 };
+            const newLg = [...currentLg, newItem];
+            return buildResponsiveLayouts(newLg);
         });
 
         setIsAddModalOpen(false);
