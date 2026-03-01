@@ -237,10 +237,13 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
 
                     setWidgets(parsedWidgets || []);
 
-                    // Force rebuild of responsive layouts from 'lg' to fix broken mobile layouts
-                    // caused by previous horizontal compaction ordering.
+                    // Force rebuild of responsive layouts from 'lg' to fix broken mobile layouts.
+                    // Also sort lg by (y, x) so the responsive collapse always stacks in correct order.
                     if (parsedLayouts && parsedLayouts.lg) {
-                        setLayouts({ lg: parsedLayouts.lg });
+                        const sortedLg = [...parsedLayouts.lg].sort((a: any, b: any) =>
+                            a.y !== b.y ? a.y - b.y : a.x - b.x
+                        );
+                        setLayouts({ lg: sortedLg });
                     } else {
                         setLayouts(parsedLayouts || {});
                     }
@@ -512,7 +515,11 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
         const newLayouts = { ...layouts };
         Object.keys(newLayouts).forEach(key => {
             if (newLayouts[key]) {
-                newLayouts[key] = newLayouts[key].map((item: any) => ({
+                // Sort by (y, x) so 1-column mobile collapse always preserves left-to-right row order
+                const sorted = [...newLayouts[key]].sort((a: any, b: any) =>
+                    a.y !== b.y ? a.y - b.y : a.x - b.x
+                );
+                newLayouts[key] = sorted.map((item: any) => ({
                     ...item,
                     static: !isEditable
                 }));
