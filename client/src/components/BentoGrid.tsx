@@ -236,7 +236,14 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                     const parsedLayouts = typeof config.layouts === 'string' ? JSON.parse(config.layouts) : config.layouts;
 
                     setWidgets(parsedWidgets || []);
-                    setLayouts(parsedLayouts || {});
+
+                    // Force rebuild of responsive layouts from 'lg' to fix broken mobile layouts
+                    // caused by previous horizontal compaction ordering.
+                    if (parsedLayouts && parsedLayouts.lg) {
+                        setLayouts({ lg: parsedLayouts.lg });
+                    } else {
+                        setLayouts(parsedLayouts || {});
+                    }
                 }
 
             } catch (error: any) {
@@ -587,7 +594,7 @@ export const BentoGrid = ({ isEditable, publicUsername }: BentoGridProps) => {
                             rowHeight={280}
                             isDraggable={isEditable}
                             isResizable={false}
-                            compactType="horizontal"
+                            compactType="vertical"
                             preventCollision={false}
                             margin={[24, 24]}
                             containerPadding={[0, 0]}
